@@ -1,47 +1,99 @@
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
-import TheWelcome from './components/TheWelcome.vue'
+import MainModule from './components/MainModule.vue'
+import SmallModule1 from './components/SmallModule1.vue'
+import SmallModule2 from './components/SmallModule2.vue'
+import SmallModule3 from './components/SmallModule3.vue'
+import SmallModule4 from './components/SmallModule4.vue'
+import SmallModule5 from './components/SmallModule5.vue'
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="./assets/logo.svg" width="125" height="125" />
-
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
+  <div class="container">
+    <!-- 上方区域 -->
+    <div class="top-section">
+      <!-- 左侧大模块 -->
+      <div class="main-module">
+        <MainModule />
+      </div>
+      <!-- 右侧两个小模块 -->
+      <div class="side-modules">
+        <SmallModule1 title="Small Module 1" />
+        <SmallModule2 title="Small Module 2" />
+      </div>
     </div>
-  </header>
 
-  <main>
-    <TheWelcome />
-  </main>
+    <!-- 下方区域 -->
+    <div class="bottom-section">
+      <SmallModule3 title="Small Module 3" />
+      <SmallModule4 title="Small Module 4" />
+      <SmallModule5 title="Small Module 5" />
+    </div>
+  </div>
 </template>
 
 <style scoped>
-header {
-  line-height: 1.5;
+/* 主容器占满整个屏幕 */
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100vh; /* 占据整个视口高度 */
+  width: 100vw; /* 占据整个视口宽度 */
+  box-sizing: border-box; /* 包括内边距和边框在内的宽高计算 */
+  padding: 0;
+  margin: 0;
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
+/* 上方区域 */
+.top-section {
+  display: flex;
+  flex: 2; /* 占据较大比例的高度 */
+  gap: 1rem;
 }
 
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
+/* 左侧大模块 */
+.main-module {
+  flex: 2; 
+  background-color: #f0f0f0;
+  padding: 1rem;
+  border: 1px solid #ccc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 
-  .logo {
-    margin: 0 2rem 0 0;
-  }
+/* 右侧两个小模块 */
+.side-modules {
+  flex: 1; 
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
 
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
+.side-modules > * {
+  flex: 1; 
+  background-color: #f9f9f9;
+  padding: 1rem;
+  border: 1px solid #ccc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 下方区域 */
+.bottom-section {
+  display: flex;
+  flex: 1; 
+  gap: 1rem;
+}
+
+.bottom-section > * {
+  flex: 1; 
+  background-color: #f9f9f9;
+  padding: 1rem;
+  border: 1px solid #ccc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 </style>
