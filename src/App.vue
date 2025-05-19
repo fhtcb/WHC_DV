@@ -1,98 +1,51 @@
 <script setup>
 import MainModule from './components/MainModule.vue'
-import SmallModule1 from './components/SmallModule1.vue'
-import SmallModule2 from './components/SmallModule2.vue'
-import SmallModule3 from './components/SmallModule3.vue'
-import SmallModule4 from './components/SmallModule4.vue'
-import SmallModule5 from './components/SmallModule5.vue'
+import SmallModule1 from './components/SmallModule1.vue' // 左上大副图
+import SmallModule2 from './components/SmallModule2.vue' // 右上大副图
+import SmallModule3 from './components/SmallModule3.vue' // 左下小副图
+import SmallModule4 from './components/SmallModule4.vue' // 底副图
+import SmallModule5 from './components/SmallModule5.vue' // 右下小副图
 </script>
 
 <template>
-  <div class="container">
-    <!-- 上方区域 -->
-    <div class="top-section">
-      <!-- 左侧大模块 -->
-      <div class="main-module">
-        <MainModule />
-      </div>
-      <!-- 右侧两个小模块 -->
-      <div class="side-modules">
-        <SmallModule1 title="Small Module 1" />
-        <SmallModule2 title="Small Module 2" />
-      </div>
-    </div>
-
-    <!-- 下方区域 -->
-    <div class="bottom-section">
-      <SmallModule3 title="Small Module 3" />
-      <SmallModule4 title="Small Module 4" />
-      <SmallModule5 title="Small Module 5" />
-    </div>
+  <div class="dashboard-grid">
+    <div class="big-side left"><SmallModule1 title="左大副图" /></div>
+    <div class="main"><MainModule title="主图" /></div>
+    <div class="big-side right"><SmallModule2 title="右大副图" /></div>
+    <div class="small left"><SmallModule3 title="左下小副图" /></div>
+    <div class="bottom"><SmallModule4 title="底副图" /></div>
+    <div class="small right"><SmallModule5 title="右下小副图" /></div>
   </div>
 </template>
 
 <style scoped>
-/* 主容器占满整个屏幕 */
-.container {
-  display: flex;
-  flex-direction: column;
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 2fr 1.2fr;
+  grid-template-rows: 2fr 1.2fr;
+  grid-template-areas:
+    "bigsideleft main bigsideright"
+    "smallleft bottom smallright";
+  height: 100vh;
+  width: 100vw;
   gap: 1rem;
-  height: 100vh; /* 占据整个视口高度 */
-  width: 100vw; /* 占据整个视口宽度 */
-  box-sizing: border-box; /* 包括内边距和边框在内的宽高计算 */
-  padding: 0;
-  margin: 0;
-}
-
-/* 上方区域 */
-.top-section {
-  display: flex;
-  flex: 2; /* 占据较大比例的高度 */
-  gap: 1rem;
-}
-
-/* 左侧大模块 */
-.main-module {
-  flex: 2; 
-  background-color: #f0f0f0;
+  box-sizing: border-box;
   padding: 1rem;
+}
+
+.big-side.left    { grid-area: bigsideleft; display: flex; }
+.big-side.right   { grid-area: bigsideright; display: flex; }
+.main             { grid-area: main; display: flex; }
+.bottom           { grid-area: bottom; display: flex; }
+.small.left       { grid-area: smallleft; display: flex; }
+.small.right      { grid-area: smallright; display: flex; }
+
+.big-side, .main, .bottom, .small {
+  background: #f9f9f9;
   border: 1px solid #ccc;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-/* 右侧两个小模块 */
-.side-modules {
-  flex: 1; 
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.side-modules > * {
-  flex: 1; 
-  background-color: #f9f9f9;
   padding: 1rem;
-  border: 1px solid #ccc;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-/* 下方区域 */
-.bottom-section {
-  display: flex;
-  flex: 1; 
-  gap: 1rem;
-}
-
-.bottom-section > * {
-  flex: 1; 
-  background-color: #f9f9f9;
-  padding: 1rem;
-  border: 1px solid #ccc;
-  display: flex;
+  min-width: 0;
+  min-height: 0;
   justify-content: center;
   align-items: center;
 }
