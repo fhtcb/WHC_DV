@@ -4,7 +4,7 @@
      * @param {Number} sheetIndex 默认为第 0 个表
      * @returns {Array<Object>}
      */
-    function parseArrayBuffer(data, sheetIndex = 0) {
+    export function parseArrayBuffer(data, sheetIndex = 0) {
       const workbook = XLSX.read(data, { type: 'array' });
       const name = workbook.SheetNames[sheetIndex];
       const sheet = workbook.Sheets[name];
@@ -16,7 +16,7 @@
      * @param {File} file
      * @returns {Promise<Array<Object>>}
      */
-    function readFile(file) {
+    export function readFile(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsArrayBuffer(file);
@@ -38,7 +38,7 @@
      * @param {string} field - 要提取的字段名
      * @returns {Array<*>} - 对应字段的值数组，空、undefined 或 null 的位置替换为 0
      */
-    function getColumn(dataArray, field) {
+    export function getColumn(dataArray, field) {
       return dataArray.map(item => {
         const v = item[field];
         return (v === undefined || v === null || v === '') ? 0 : v;
@@ -52,12 +52,13 @@
      * @param {*} value - 目标值相等
      * @returns {Array<Object>} - 匹配成功的对象数组
      */
-    function filterByFieldValue(dataArray, field, value) {
+    export function filterByFieldValue(dataArray, field, value) {
       return dataArray.filter(item => item[field] === value);
     }
 
 
     // 绑定文件输入事件
+    /*
     document.getElementById('fileInput').addEventListener('change', async (event) => {
       const file = event.target.files[0];
       const output = document.getElementById('output');
@@ -78,3 +79,4 @@
         output.textContent = '解析失败：' + err.message;
       }
     });
+*/
