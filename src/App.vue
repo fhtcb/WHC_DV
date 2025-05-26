@@ -27,7 +27,7 @@ import SmallModule5 from './components/SmallModule5.vue' // 右下小副图
     "bigsideleft main bigsideright"
     "smallleft bottom smallright";
   height: 100vh;
-  width: 100vw;
+  width: 80vw;
   gap: 1rem;
   box-sizing: border-box;
   padding: 1rem;
