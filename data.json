@@ -1,0 +1,12 @@
+[
+  {"lng": 42.3, "lat": 54.7, "year": 2008, "region": "Latin America"},
+  {"lng": 2.6, "lat": 68.9, "year": 1989, "region": "Europe and North America"},
+  {"lng": 112.0, "lat": 13.4, "year": 1987, "region": "Latin America"},
+  {"lng": 325.8, "lat": 29.5, "year": 1987, "region": "Europe and North America"},
+  {"lng": 61.7, "lat": 72.4, "year": 1990, "region": "Europe and North America"},
+  {"lng": 194.6, "lat": 35.5, "year": 2019, "region": "Asia and the Pacific"},
+  {"lng": 222.6, "lat": 36.2, "year": 1985, "region": "Arab States"},
+  {"lng": 101.8, "lat": 69.3, "year": 2020, "region": "Arab States"},
+  {"lng": 127.1, "lat": 62.7, "year": 2025, "region": "Latin America"},
+  {"lng": 158.5, "lat": 83.8, "year": 1997, "region": "Africa"}
+]
