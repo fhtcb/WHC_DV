@@ -58,7 +58,7 @@
 
 
     // 绑定文件输入事件
-    /*
+    
     document.getElementById('fileInput').addEventListener('change', async (event) => {
       const file = event.target.files[0];
       const output = document.getElementById('output');
@@ -79,4 +79,4 @@
         output.textContent = '解析失败：' + err.message;
       }
     });
-*/
+

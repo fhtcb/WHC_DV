@@ -17,13 +17,12 @@ export default {
     const myChart = echarts.init(chartDom);
 
     // 使用 fetch 替代 $.getJSON 加载数据
-    fetch(ROOT_PATH + 'population.json')
+    fetch(ROOT_PATH + 'data/data.json')
       .then((response) => response.json())
       .then((data) => {
         // 处理数据
         data = data
-          .filter((dataItem) => dataItem[2] > 0)
-          .map((dataItem) => [dataItem[0], dataItem[1], Math.sqrt(dataItem[2])]);
+          .map((dataItem) => [dataItem['longitude'], dataItem['latitude'], 10]);
 
         // 设置图表选项
         myChart.setOption({
