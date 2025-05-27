@@ -19,19 +19,21 @@ export default {
     // 使用 fetch 替代 $.getJSON 加载数据
     fetch(ROOT_PATH + 'data/data.json')
       .then((response) => response.json())
-      .then((data) => {
+      .then((rawData) => {
         // 处理数据
-        data = data
-          .map((dataItem) => [dataItem['longitude'], dataItem['latitude'], 10]);
-
+        const data = rawData
+          .map((dataItem) => [dataItem['longitude'], dataItem['latitude'], dataItem['name_en'], Math.sqrt(dataItem['area_hectares'])]);
+        const maxRadius = rawData.reduce(
+          (max, item) => Math.max(max, Math.sqrt(item.area_hectares) || 0), 0 );
         // 设置图表选项
         myChart.setOption({
           visualMap: {
             show: false,
+            dimension: 3,
             min: 0,
-            max: 60,
+            max: maxRadius,
             inRange: {
-              symbolSize: [1.0, 10.0]
+              symbolSize: [5.0, 100.0]
             }
           },
           globe: {
@@ -77,6 +79,13 @@ export default {
               beta: 180,
               alpha: 20,
               distance: 100
+            }
+            
+          },
+          tooltip: {
+            trigger: 'item',
+            formatter: function (params) {
+              return `Position: (${params.value[0]}, ${params.value[1]})<br> name: ${params.value[2] || 'none'}`;
             }
           },
           series: {
