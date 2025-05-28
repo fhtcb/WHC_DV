@@ -96,11 +96,12 @@ export default {
           },
           globe: {
             environment: ROOT_PATH + 'starfield.jpg',
-            heightTexture: ROOT_PATH + 'bathymetry_bw_composite_4k.jpg',
-            displacementScale: 0.05,
+            baseTexture: ROOT_PATH + 'world.topo.bathy.200401.jpg',
+            heightTexture: ROOT_PATH + 'world.topo.bathy.200401.jpg',
+            displacementScale: 0.04,
             displacementQuality: 'high',
             globeOuterRadius: 100,
-            baseColor: '#000',
+            // baseColor: '#000',
             shading: 'realistic',
             realisticMaterial: {
               roughness: 0.2,
