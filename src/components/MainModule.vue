@@ -1,21 +1,74 @@
+
+
 <template>
-  <div id="main" style="width: 100%; height: 400px;"></div>
+  <div id="mainchart" style="width: 100%; height: 400px;"></div>
 </template>
 
 <script>
 
-
+import { nextTick } from 'vue';
 
 
 export default {
   name: 'MainModule',
+  props: {
+    dangerMode: Boolean
+  },
+  data() {
+    return {
+
+      chartData: [],
+      maxRadius: 0
+    };
+  },
+
+  watch: {
+    dangerMode(newVal) {
+      console.log('dangerMode changed:', newVal); // 加个日志
+      if (this.chart) {
+        this.chart.setOption({
+          series: [{
+            type: 'scatter3D',
+            coordinateSystem: 'globe',
+            blendMode: 'lighter',
+            symbolSize: 2,
+            itemStyle: {
+              color: this.getColorFunction(),
+              opacity: 1
+            },
+            data: this.chartData
+          }]
+        }); // 第二个参数true，强制重绘
+      }
+    }
+  },
+  methods: {
+    getColorFunction() {
+      if (this.dangerMode) {
+        return (params) =>
+          params.value[5] === 1
+            ? 'rgba(255,0,0,0.7)'  // 危险点
+            : 'rgba(128,128,128,0.7)'; // 非危险点
+      } else {
+        const colorMap = {
+          C: 'rgba(0, 0, 255, 0.3)',
+          N: 'rgba(0, 255, 0, 0.3)'
+        };
+        return (params) =>
+          colorMap[params.value[4]] || 'rgba(0, 255, 255, 0.3)';
+      }
+    }
+  },
   mounted() {
+    setTimeout(() => {
+      
     const ROOT_PATH = '/';
 
     // 获取容器并初始化 ECharts 实例
-    const chartDom = document.getElementById('main');
-    const myChart = echarts.init(chartDom);
-
+    const chartDom = document.getElementById('mainchart');
+    console.log(chartDom.offsetWidth, chartDom.offsetHeight);
+    this.chart = echarts.init(chartDom);
+          this.chart.resize();
     // 使用 fetch 替代 $.getJSON 加载数据
     fetch(ROOT_PATH + 'data/data.json')
       .then((response) => response.json())
@@ -28,7 +81,11 @@ export default {
         const maxRadius = rawData.reduce(
           (max, item) => Math.max(max, Math.sqrt(item.area_hectares) || 0), 0);
         // 设置图表选项
-        myChart.setOption({
+
+        this.chartData = data;
+        this.maxRadius = maxRadius;
+
+        this.chart.setOption({
           visualMap: {
             show: false,
             dimension: 3,
@@ -90,7 +147,7 @@ export default {
               return `Position: (${params.value[0]}, ${params.value[1]})<br> name: ${params.value[2] || 'none'}`;
             }
           },
-          series: {
+          series: [{
             type: 'scatter3D',
             coordinateSystem: 'globe',
             blendMode: 'lighter',
@@ -111,13 +168,13 @@ export default {
               opacity: 1
             },
             data: data
-          }
+          }]
         });
       })
       .catch((error) => {
         console.error('Error loading data:', error);
       });
-  }
+  },1000)}
 };
 </script>
 
