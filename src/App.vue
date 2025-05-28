@@ -45,7 +45,7 @@ export default {
     "bigsideleft main bigsideright"
     "smallleft bottom smallright";
   height: 100vh;
-  width: 80vw;
+  width: 100vw;
   gap: 1rem;
   box-sizing: border-box;
   padding: 1rem;
