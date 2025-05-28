@@ -22,9 +22,11 @@ export default {
       .then((rawData) => {
         // 处理数据
         const data = rawData
-          .map((dataItem) => [dataItem['longitude'], dataItem['latitude'], dataItem['name_en'], Math.sqrt(dataItem['area_hectares'])]);
+          .map((dataItem) => [dataItem['longitude'], dataItem['latitude'], dataItem['name_en'],
+          Math.sqrt(dataItem['area_hectares']), dataItem['category_short'],
+          dataItem['danger'], dataItem['name_en']]);
         const maxRadius = rawData.reduce(
-          (max, item) => Math.max(max, Math.sqrt(item.area_hectares) || 0), 0 );
+          (max, item) => Math.max(max, Math.sqrt(item.area_hectares) || 0), 0);
         // 设置图表选项
         myChart.setOption({
           visualMap: {
@@ -80,7 +82,7 @@ export default {
               alpha: 20,
               distance: 100
             }
-            
+
           },
           tooltip: {
             trigger: 'item',
@@ -94,7 +96,18 @@ export default {
             blendMode: 'lighter',
             symbolSize: 2,
             itemStyle: {
-              color: 'rgb(50, 50, 150)',
+              color: (params) => {
+                // 根据 category_short 动态设置颜色
+                const category = params.value[4]; // category_short 的值
+                switch (category) {
+                  case 'C':
+                    return 'rgba(0, 0, 255, 0.3)'; // Cultural
+                  case 'N':
+                    return 'rgba(0, 255, 0, 0.3)'; // Natural
+                  default:
+                    return 'rgba(0, 255, 255,0.3)'; // C/N
+                }
+              },
               opacity: 1
             },
             data: data
