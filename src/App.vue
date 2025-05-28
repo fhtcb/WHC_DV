@@ -27,7 +27,8 @@ export default {
   <div class="dashboard-grid">
     <div class="big-side left"><SmallModule1 title="左大副图" /></div>
     <div class="main"><MainModule :dangerMode="dangerMode" /></div>
-    <MainModule_DangerViewButton v-model:dangerMode="dangerMode" />
+    <MainModule_DangerViewButton v-model:dangerMode="dangerMode" />  
+    <!-- 切换主图danger显示的按钮,先随便丢在某个地方 -->
     <div class="big-side right"><SmallModule2 title="右大副图" /></div>
     <div class="small left"><SmallModule3 title="左下小副图" /></div>
     <div class="bottom"><SmallModule4 title="底副图" /></div>

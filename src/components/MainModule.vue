@@ -1,7 +1,5 @@
-
-
 <template>
-  <div id="mainchart" style="width: 100%; height: 400px;"></div>
+  <div id="mainchart" style="width: 100%; height: 100%;"></div>
 </template>
 
 <script>
@@ -38,7 +36,7 @@ export default {
             },
             data: this.chartData
           }]
-        }); // 第二个参数true，强制重绘
+        }); 
       }
     }
   },
@@ -77,7 +75,8 @@ export default {
         const data = rawData
           .map((dataItem) => [dataItem['longitude'], dataItem['latitude'], dataItem['name_en'],
           Math.sqrt(dataItem['area_hectares']), dataItem['category_short'],
-          dataItem['danger'], dataItem['name_en']]);
+          dataItem['danger'], dataItem['region_en'],
+          dataItem['short_description_en'], dataItem['name_en']]);
         const maxRadius = rawData.reduce(
           (max, item) => Math.max(max, Math.sqrt(item.area_hectares) || 0), 0);
         // 设置图表选项
@@ -144,7 +143,8 @@ export default {
           tooltip: {
             trigger: 'item',
             formatter: function (params) {
-              return `Position: (${params.value[0]}, ${params.value[1]})<br> name: ${params.value[2] || 'none'}`;
+              return `Position: (${params.value[0]}, ${params.value[1]})<br> name: ${params.value[2] || 'none'}
+              <br> region: ${params.value[6] || 'none'}<br> area: ${params.value[3] || 'none'}<br> category: ${params.value[4] || 'none'}<br> danger: ${params.value[5] === 1 ? 'yes' : 'no'}`;
             }
           },
           series: [{
@@ -170,11 +170,19 @@ export default {
             data: data
           }]
         });
+      this.chart.on('click', (params) => {
+          // 触发某些点击事件，这里用 alert 显示描述信息来举例
+          if (params.value && params.value[7]) {
+            alert(params.value[7]);
+          } else {
+            alert('No description.');
+          }  
+      });
       })
       .catch((error) => {
         console.error('Error loading data:', error);
       });
-  },1000)}
+  },100)}
 };
 </script>
 

@@ -1,5 +1,7 @@
 <template>
-  <button @click="toggle">切换危险点着色</button>
+    <button @click="toggle">
+    {{ dangerMode ? 'View heritages types' : 'View Danger heritages' }}
+  </button>
 </template>
 
 <script>
