@@ -189,8 +189,8 @@ export default {
 
 <style>
 /* 可选：为容器设置样式 */
-#main {
+#mainchart {
   width: 100%;
-  height: 400px;
+  height: 100%;
 }
 </style>

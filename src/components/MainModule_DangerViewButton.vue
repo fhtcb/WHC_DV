@@ -1,7 +1,12 @@
 <template>
-    <button @click="toggle">
-    {{ dangerMode ? 'View heritages types' : 'View Danger heritages' }}
-  </button>
+
+    <el-switch
+    v-model="localDangerMode"
+    style="--el-switch-on-color: #ff4949; --el-switch-off-color: #13ce66"
+    active-text="查看濒危遗址"
+    inactive-text=""
+    @change="toggle"
+  />
 </template>
 
 <script>
