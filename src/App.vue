@@ -81,11 +81,13 @@ html, body, #app {
   align-items: stretch;
   justify-content: flex-start;
   position: relative;
+  box-shadow: 0 2px 12px 0 rgba(255, 255, 255)
 }
 ::v-deep(.el-card__body) {
   height: 100%;
   padding: 0; /* 可选，去除内边距让内容更满 */
 }
+
 
 .area.big-side.left      { grid-area: bigsideleft; }
 .area.main               { grid-area: main; }
