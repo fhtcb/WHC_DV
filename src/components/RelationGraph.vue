@@ -186,7 +186,7 @@ export default {
 <style scoped>
 #smallModule3 {
   width: 100%;
-  height: 600px;
+  height: 100%;
   margin: 0 auto;
 }
 </style>
