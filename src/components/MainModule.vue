@@ -20,7 +20,6 @@ export default {
   },
   data() {
     return {
-
       chartData: [],
       maxRadius: 0,
       dialogVisible: false,

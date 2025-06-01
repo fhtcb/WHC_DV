@@ -128,8 +128,35 @@ export default {
             })
           }*/
         ],
+
+        blur: {  // 非高亮项样式
+          itemStyle: {
+            opacity: 0.3  // 透明度降低
+          },
+          lineStyle: {
+            opacity: 0.1  // 透明度降低
+          }
+        },
+        emphasis: {  // 高亮状态样式
+          focus: 'self',
+          itemStyle: {
+            color: '#FF6B6B',  // 高亮颜色改为红色
+            borderWidth: 2,
+            borderColor: '#333',
+            shadowBlur: 10,
+            shadowColor: 'rgba(0, 0, 0, 0.5)'
+          },
+
+          label: {  // 高亮时显示标签
+            show: true,
+            fontWeight: 'bold',
+            fontSize: 16,
+            formatter: '{b}'
+          }
+        },
         series: [
           {
+            selectedMode: true,
             name: '',
             type: 'graph',
             layout: 'force',
@@ -156,7 +183,7 @@ export default {
               hideOverlap: true
             },
             scaleLimit: {
-              min: 0.5,
+              min: 0.8,
               max: 2
             },
             lineStyle: {
@@ -169,6 +196,53 @@ export default {
 
       myChart.value.setOption(option);
       myChart.value.hideLoading();
+
+      myChart.value.on('click', (params) => {
+        if (params.dataType === 'node') {
+          console.log('node clicked')
+          /*this.$emit('filterUpdate', 'C');*/
+          console.log(this.filter.detail_category)
+          // 高亮当前节点及其关联的边
+          myChart.value.dispatchAction({
+            type: 'select',
+            seriesIndex: 0,
+            dataIndex: params.dataIndex
+          });
+        } else if (params.dataType === 'edge') {
+          console.log('edge clicked')
+          /*this.$emit('update-filter', newFilter);*/
+          console.log(this.filter.detail_category)
+          // 高亮当前边
+          myChart.value.dispatchAction({
+            type: 'select',
+            seriesIndex: 0,
+            edgeIndex: params.dataIndex
+          });
+        }else{
+          myChart.dispatchAction({ type: 'downplay' });  // 取消所有高亮
+          /*this.$emit('update-filter', newFilter);*/
+          console.log(this.filter.detail_category)
+        }
+      });
+
+      myChart.value.on('click', (params) => {
+        console.log('点击事件参数:', params);
+
+        if (params.dataType === 'node') {
+          console.log('点击了节点:', params.data.name);
+          // 执行节点点击逻辑
+        } else if (params.dataType === 'edge') {
+          console.log('点击了连线:', params.data.source, '-', params.data.target);
+          // 执行连线点击逻辑
+        }
+      });
+
+      /*myChart.value.on('mouseout', () => {
+        myChart.value.dispatchAction({
+          type: 'downplay',
+          seriesIndex: 0,
+        });
+      });*/
     };
 
     onMounted(() => {

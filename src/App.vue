@@ -18,7 +18,7 @@
     </div>
     <div class="area small left">
       <el-card shadow="hover" class="area-card">
-        <RelationGraph :data="mainData" :filter="filter" />
+        <RelationGraph :data="mainData" :filter="filter" @filterUpdate = "(newFilter) => {filter = newFilter;}" />
       </el-card>
     </div>
     <div class="area bottom">
@@ -55,8 +55,6 @@ const filter = ref({//筛选器，会更改其他组件内容
     timeRange: [],//数组，包括起始时间与终止时间
     time: '',//时间点，只与主图和时间轴有关
 })
-
-
 
 onMounted(async () => {
   const ROOT_PATH = '/';
