@@ -1,7 +1,3 @@
-<script setup>
-
-</script>
-
 <template>
   <div id="smallModule3" ref="chartContainer"></div>
 </template>
@@ -12,81 +8,89 @@ import { onMounted, ref } from 'vue';
 
 export default {
   name: 'RelationGraph',
+  props: {
+    data: {
+      type: Array,
+      default: () => []
+    },
+    filter: Object
+  },
   setup() {
     const chartContainer = ref(null);
     const myChart = ref(null);
-    const data = {
+    const whcData= {
 "nodes":[
-{"id": "i", "category": 0, "symbolSize": 5.22,"name": "i"},
-{"id": "ii", "category": 1, "symbolSize": 9.58,"name": "ii"},
-{"id": "iii", "category": 2, "symbolSize": 10.26,"name": "iii"},
-{"id": "iv", "category": 3, "symbolSize": 12.82,"name": "iv"},
-{"id": "v", "category": 4, "symbolSize": 3.44,"name": "v"},
-{"id": "vi", "category": 5, "symbolSize": 5.12,"name": "vi"},
-{"id": "vii", "category": 6, "symbolSize": 3.02,"name": "vii"},
-{"id": "viii", "category": 7, "symbolSize": 1.96,"name": "viii"},
-{"id": "ix", "category": 8, "symbolSize": 2.74,"name": "ix"},
-{"id": "x", "category": 9, "symbolSize": 2.74,"name": "ix"}
+{"id": "C1", "category": 0, "symbolSize": 5.22,"name": "C1"},
+{"id": "C2", "category": 1, "symbolSize": 9.58,"name": "C2"},
+{"id": "C3", "category": 2, "symbolSize": 10.26,"name": "C3"},
+{"id": "C4", "category": 3, "symbolSize": 12.82,"name": "C4"},
+{"id": "C5", "category": 4, "symbolSize": 3.44,"name": "C5"},
+{"id": "C6", "category": 5, "symbolSize": 5.12,"name": "C6"},
+{"id": "N7", "category": 6, "symbolSize": 3.02,"name": "N7"},
+{"id": "N8", "category": 7, "symbolSize": 1.96,"name": "N8"},
+{"id": "N9", "category": 8, "symbolSize": 2.74,"name": "N9"},
+{"id": "N10", "category": 9, "symbolSize": 2.74,"name": "N9"}
 ],
 "links":[
-{"source": "i", "target": "ii", "value": 147,"lineStyle": { "width": 2.46}},
-{"source": "i", "target": "iii", "value": 134,"lineStyle": { "width": 2.33}},
-{"source": "i", "target": "iv", "value": 173,"lineStyle": { "width": 2.7199999999999998}},
-{"source": "i", "target": "v", "value": 18,"lineStyle": { "width": 1.17}},
-{"source": "i", "target": "vi", "value": 83,"lineStyle": { "width": 1.8199999999999998}},
-{"source": "i", "target": "vii", "value": 10,"lineStyle": { "width": 1.09}},
-{"source": "i", "target": "viii", "value": 2,"lineStyle": { "width": 1.01}},
-{"source": "i", "target": "ix", "value": 5,"lineStyle": { "width": 1.04}},
-{"source": "i", "target": "x", "value": 5,"lineStyle": { "width": 1.04}},
-{"source": "ii", "target": "iii", "value": 205,"lineStyle": { "width": 3.04}},
-{"source": "ii", "target": "iv", "value": 344,"lineStyle": { "width": 4.43}},
-{"source": "ii", "target": "v", "value": 56,"lineStyle": { "width": 1.55}},
-{"source": "ii", "target": "vi", "value": 123,"lineStyle": { "width": 2.2199999999999998}},
-{"source": "ii", "target": "vii", "value": 5,"lineStyle": { "width": 1.04}},
-{"source": "ii", "target": "viii", "value": 1,"lineStyle": { "width": 1.0}},
-{"source": "ii", "target": "ix", "value": 3,"lineStyle": { "width": 1.02}},
-{"source": "ii", "target": "x", "value": 4,"lineStyle": { "width": 1.03}},
-{"source": "iii", "target": "iv", "value": 265,"lineStyle": { "width": 3.64}},
-{"source": "iii", "target": "v", "value": 85,"lineStyle": { "width": 1.8399999999999999}},
-{"source": "iii", "target": "vi", "value": 137,"lineStyle": { "width": 2.3600000000000003}},
-{"source": "iii", "target": "vii", "value": 19,"lineStyle": { "width": 1.18}},
-{"source": "iii", "target": "viii", "value": 7,"lineStyle": { "width": 1.06}},
-{"source": "iii", "target": "ix", "value": 17,"lineStyle": { "width": 1.16}},
-{"source": "iii", "target": "x", "value": 17,"lineStyle": { "width": 1.16}},
-{"source": "iv", "target": "v", "value": 85,"lineStyle": { "width": 1.8399999999999999}},
-{"source": "iv", "target": "vi", "value": 142,"lineStyle": { "width": 2.41}},
-{"source": "iv", "target": "vii", "value": 9,"lineStyle": { "width": 1.08}},
-{"source": "iv", "target": "viii", "value": 4,"lineStyle": { "width": 1.03}},
-{"source": "iv", "target": "ix", "value": 7,"lineStyle": { "width": 1.06}},
-{"source": "iv", "target": "x", "value": 9,"lineStyle": { "width": 1.08}},
-{"source": "v", "target": "vi", "value": 27,"lineStyle": { "width": 1.26}},
-{"source": "v", "target": "vii", "value": 13,"lineStyle": { "width": 1.12}},
-{"source": "v", "target": "viii", "value": 5,"lineStyle": { "width": 1.04}},
-{"source": "v", "target": "ix", "value": 5,"lineStyle": { "width": 1.04}},
-{"source": "v", "target": "x", "value": 5,"lineStyle": { "width": 1.04}},
-{"source": "vi", "target": "vii", "value": 10,"lineStyle": { "width": 1.09}},
-{"source": "vi", "target": "viii", "value": 5,"lineStyle": { "width": 1.04}},
-{"source": "vi", "target": "ix", "value": 6,"lineStyle": { "width": 1.05}},
-{"source": "vi", "target": "x", "value": 9,"lineStyle": { "width": 1.08}},
-{"source": "vii", "target": "viii", "value": 64,"lineStyle": { "width": 1.63}},
-{"source": "vii", "target": "ix", "value": 72,"lineStyle": { "width": 1.71}},
-{"source": "vii", "target": "x", "value": 84,"lineStyle": { "width": 1.83}},
-{"source": "viii", "target": "ix", "value": 35,"lineStyle": { "width": 1.34}},
-{"source": "viii", "target": "x", "value": 36,"lineStyle": { "width": 1.35}},
-{"source": "ix", "target": "x", "value": 107,"lineStyle": { "width": 2.06}}
+{"source": "C1", "target": "C2", "value": 147,"lineStyle": { "width": 2.46}},
+{"source": "C1", "target": "C3", "value": 134,"lineStyle": { "width": 2.33}},
+{"source": "C1", "target": "C4", "value": 173,"lineStyle": { "width": 2.7199999999999998}},
+{"source": "C1", "target": "C5", "value": 18,"lineStyle": { "width": 1.17}},
+{"source": "C1", "target": "C6", "value": 83,"lineStyle": { "width": 1.8199999999999998}},
+{"source": "C1", "target": "N7", "value": 10,"lineStyle": { "width": 1.09}},
+{"source": "C1", "target": "N8", "value": 2,"lineStyle": { "width": 1.01}},
+{"source": "C1", "target": "N9", "value": 5,"lineStyle": { "width": 1.04}},
+{"source": "C1", "target": "N10", "value": 5,"lineStyle": { "width": 1.04}},
+{"source": "C2", "target": "C3", "value": 205,"lineStyle": { "width": 3.04}},
+{"source": "C2", "target": "C4", "value": 344,"lineStyle": { "width": 4.43}},
+{"source": "C2", "target": "C5", "value": 56,"lineStyle": { "width": 1.55}},
+{"source": "C2", "target": "C6", "value": 123,"lineStyle": { "width": 2.2199999999999998}},
+{"source": "C2", "target": "N7", "value": 5,"lineStyle": { "width": 1.04}},
+{"source": "C2", "target": "N8", "value": 1,"lineStyle": { "width": 1.0}},
+{"source": "C2", "target": "N9", "value": 3,"lineStyle": { "width": 1.02}},
+{"source": "C2", "target": "N10", "value": 4,"lineStyle": { "width": 1.03}},
+{"source": "C3", "target": "C4", "value": 265,"lineStyle": { "width": 3.64}},
+{"source": "C3", "target": "C5", "value": 85,"lineStyle": { "width": 1.8399999999999999}},
+{"source": "C3", "target": "C6", "value": 137,"lineStyle": { "width": 2.3600000000000003}},
+{"source": "C3", "target": "N7", "value": 19,"lineStyle": { "width": 1.18}},
+{"source": "C3", "target": "N8", "value": 7,"lineStyle": { "width": 1.06}},
+{"source": "C3", "target": "N9", "value": 17,"lineStyle": { "width": 1.16}},
+{"source": "C3", "target": "N10", "value": 17,"lineStyle": { "width": 1.16}},
+{"source": "C4", "target": "C5", "value": 85,"lineStyle": { "width": 1.8399999999999999}},
+{"source": "C4", "target": "C6", "value": 142,"lineStyle": { "width": 2.41}},
+{"source": "C4", "target": "N7", "value": 9,"lineStyle": { "width": 1.08}},
+{"source": "C4", "target": "N8", "value": 4,"lineStyle": { "width": 1.03}},
+{"source": "C4", "target": "N9", "value": 7,"lineStyle": { "width": 1.06}},
+{"source": "C4", "target": "N10", "value": 9,"lineStyle": { "width": 1.08}},
+{"source": "C5", "target": "C6", "value": 27,"lineStyle": { "width": 1.26}},
+{"source": "C5", "target": "N7", "value": 13,"lineStyle": { "width": 1.12}},
+{"source": "C5", "target": "N8", "value": 5,"lineStyle": { "width": 1.04}},
+{"source": "C5", "target": "N9", "value": 5,"lineStyle": { "width": 1.04}},
+{"source": "C5", "target": "N10", "value": 5,"lineStyle": { "width": 1.04}},
+{"source": "C6", "target": "N7", "value": 10,"lineStyle": { "width": 1.09}},
+{"source": "C6", "target": "N8", "value": 5,"lineStyle": { "width": 1.04}},
+{"source": "C6", "target": "N9", "value": 6,"lineStyle": { "width": 1.05}},
+{"source": "C6", "target": "N10", "value": 9,"lineStyle": { "width": 1.08}},
+{"source": "N7", "target": "N8", "value": 64,"lineStyle": { "width": 1.63}},
+{"source": "N7", "target": "N9", "value": 72,"lineStyle": { "width": 1.71}},
+{"source": "N7", "target": "N10", "value": 84,"lineStyle": { "width": 1.83}},
+{"source": "N8", "target": "N9", "value": 35,"lineStyle": { "width": 1.34}},
+{"source": "N8", "target": "N10", "value": 36,"lineStyle": { "width": 1.35}},
+{"source": "N9", "target": "N10", "value": 107,"lineStyle": { "width": 2.06}}
 ],
 "categories":[
-{"name": "i"},
-{"name": "ii"},
-{"name": "iii"},
-{"name": "iv"},
-{"name": "v"},
-{"name": "vi"},
-{"name": "vii"},
-{"name": "viii"},
-{"name": "ix"},
-{"name": "x"}
+{"name": "C1"},
+{"name": "C2"},
+{"name": "C3"},
+{"name": "C4"},
+{"name": "C5"},
+{"name": "C6"},
+{"name": "N7"},
+{"name": "N8"},
+{"name": "N9"},
+{"name": "N10"}
 ]}
+
 
     const initChart = () => {
       myChart.value = echarts.init(chartContainer.value);
@@ -138,9 +142,9 @@ export default {
               layoutAnimation: true
             },
             draggable: true,
-            data: data.nodes,
-            links: data.links,
-            categories: data.categories,
+            data: whcData.nodes,
+            links: whcData.links,
+            categories: whcData.categories,
             roam: true,
             label: {
               show: true,
