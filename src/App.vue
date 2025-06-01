@@ -8,7 +8,7 @@
     <div class="area main">
       <el-card shadow="hover" class="area-card">
         <MainModule_DangerViewButton v-model:dangerMode="dangerMode" style=" margin-left: 16px" />
-        <MainModule :dangerMode="dangerMode " :data="mainData" :filter="filter" />
+        <MainModule v-model:filter="filter":dangerMode="dangerMode " :data="mainData"  />
       </el-card>
     </div>
     <div class="area big-side right">
