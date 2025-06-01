@@ -6,59 +6,49 @@
 </template>
 
 <script>
-import { toRaw } from 'vue';
-
 export default {
   name: 'MainModule',
   props: {
-    filter: {
-      type: Object,
-      required: true
-    },
     dangerMode: Boolean,
     data: {
       type: Array,
       default: () => []
     }
   },
-  emits: [
-    'update:filter'
-  ],
   data() {
     return {
       chartData: [],
       maxRadius: 0,
       dialogVisible: false,
-      dialogContent: '',
-      selectedIndex: -1,
-      sel_idx: -1
+      dialogContent: ''
     };
   },
 
   watch: {
     data: {
-    handler(newData) {
-      // 这里重新处理数据并刷新图表
-      const data = newData.map(dataItem => [
-        dataItem['longitude'],
-        dataItem['latitude'],
-        dataItem['name_en'],
-        Math.sqrt(dataItem['area_hectares']),
-        dataItem['category_short'],
-        dataItem['danger'],
-        dataItem['region_en'],
-        dataItem['short_description_en'],
-        dataItem['name_en'],
-        dataItem['id_no']
-      ]);
-      this.chartData = data;
-      this.maxRadius = data.reduce((max, item) => Math.max(max, item[3] || 0), 0);
-      if (this.chart) {
-        this.chart.setOption({
-          series: [{ data: this.chartData }],
-          visualMap: { max: this.maxRadius }
-        });
-      }
+      handler(newData) {
+        // 这里重新处理数据并刷新图表
+        const data = newData.map(dataItem => [
+          dataItem['longitude'],
+          dataItem['latitude'],
+          dataItem['name_en'],
+          Math.sqrt(dataItem['area_hectares']),
+          dataItem['category_short'],
+          dataItem['danger'],
+          dataItem['region_en'],
+          dataItem['short_description_en'],
+          dataItem['name_en']
+        ]);
+        this.chartData = data;
+        this.maxRadius = data.reduce((max, item) => Math.max(max, item[3] || 0), 0);
+        if (this.chart) {
+          this.chart.setOption({
+            series: [{ data: this.chartData }],
+            visualMap: { max: this.maxRadius }
+          });
+        }
+      },
+      immediate: true // 初始化时也执行一次
     },
     dangerMode(newVal) {
       console.log('dangerMode changed:', newVal); // 加个日志
@@ -77,18 +67,6 @@ export default {
           }]
         });
       }
-    },
-    filter: {
-      handler(newF) {
-        // 每次 filter 变化时重新筛一遍，并重绘
-        this.prepareChartData();
-        this.chart.setOption({
-          series: [{
-            data: this.chartData
-          }]
-        });
-      },
-      deep: true
     }
   },
   methods: {
@@ -106,95 +84,7 @@ export default {
         return (params) =>
           colorMap[params.value[4]] || 'rgba(0, 255, 255, 0.3)';
       }
-    },
-    prepareChartData() {
-      const raw = this.data;               // 父组件传来的所有点数据数组
-      const f = toRaw(this.filter);        // 拿到一个普通 JS 对象，避免修改响应式 props
-
-      // 预先定义索引到字段名的映射关系
-      const detailFields = [
-        'C1', 'C2', 'C3', 'C4', 'C5', 'C6',
-        'N7', 'N8', 'N9', 'N10'
-      ];
-
-      this.chartData = raw
-        .filter(item => {
-          // ——————————————————————————————
-          // 2. 按 region（地区）多选筛选
-          if (Array.isArray(f.region) && f.region.length > 0) {
-
-            if (!f.region.includes(item.region_en)) {
-              return false;
-            }
-          }
-
-          // ——————————————————————————————
-          // 3. 按 category（大类）单选筛选
-          if (f.category) {
-            if (item.category_short !== f.category) {
-              return false;
-            }
-          }
-
-          // ——————————————————————————————
-          // 4. 按 detail_category（细分类）筛选
-          if (Array.isArray(f.detail_category) && f.detail_category.length === 10) {
-            // 遍历 10 个索引，只要 f.detail_category[i] === 1，
-            // 就要求 item[对应字段] 也必须 === 1，否则排除
-            for (let i = 0; i < 10; i++) {
-              if (f.detail_category[i] === 1) {
-                const fieldName = detailFields[i]; // e.g. 'C3', 'N9'
-                // 如果 item 对应字段不是 1，就说明不满足筛选要求：
-                if (item[fieldName] !== 1) {
-                  return false;
-                }
-              }
-            }
-          }
-          // 如果 f.detail_category.length === 0，就跳过此段逻辑，相当于“全选”
-
-          // ——————————————————————————————
-          // 5. 按 timeRange（时间区间）筛选
-          if (Array.isArray(f.timeRange) && f.timeRange.length === 2) {
-            const [startYear, endYear] = f.timeRange;
-            const y = item.year; // 假设 item.year 是一个数字型年份
-            if (typeof y === 'number') {
-              if (y < startYear || y > endYear) {
-                return false;
-              }
-            } else {
-              return false;
-            }
-          }
-
-          // ——————————————————————————————
-          // 6. 按 time（精确时间点）筛选
-          if (f.time) {
-            // 假设 item.time 也是一个可字符串化的时间字段
-            if (String(item.time) !== String(f.time)) {
-              return false;
-            }
-          }
-
-          // ——————————————————————————————
-          // 如果都没被排除，就保留该条数据
-          return true;
-        })
-        .map(dataItem => {
-          return [
-              dataItem['longitude'],
-              dataItem['latitude'],
-              dataItem['name_en'],
-              Math.sqrt(dataItem['area_hectares']),
-              dataItem['category_short'],
-              dataItem['danger'],
-              dataItem['region_en'],
-              dataItem['short_description_en'],
-              dataItem['name_en'],
-              dataItem['id_no']
-          ];
-        });
-    },
+    }
   },
   mounted() {
     setTimeout(() => {
@@ -212,7 +102,7 @@ export default {
         .map((dataItem) => [dataItem['longitude'], dataItem['latitude'], dataItem['name_en'],
         Math.sqrt(dataItem['area_hectares']), dataItem['category_short'],
         dataItem['danger'], dataItem['region_en'],
-        dataItem['short_description_en'], dataItem['name_en'], dataItem['id_no']]);
+        dataItem['short_description_en'], dataItem['name_en']]);
       const maxRadius = this.data.reduce(
         (max, item) => Math.max(max, Math.sqrt(item.area_hectares) || 0), 0);
       // 设置图表选项
@@ -301,19 +191,8 @@ export default {
                 default:
                   return 'rgba(0, 255, 255,0.3)'; // C/N
               }
-
             },
-            opacity: 0.6
-          },
-          emphasis: {
-              label: {
-                show: false 
-              },
-              itemStyle: {
-                color: 'rgba(255, 255, 0, 1)', // 高亮后变成红色
-                borderWidth: 2,
-                opacity: 1
-              },
+            opacity: 1
           },
           data: data
         }]
@@ -327,77 +206,10 @@ export default {
           this.dialogContent = 'No description.';
           this.dialogVisible = true;
         }
-        const clickedId = params.value[9];
-        const iidx = this.chartData.findIndex(arr => arr[9] === clickedId);
-        if (iidx === -1) return; // 找不到直接退出
-
-        if (this.selectedIndex === clickedId) {
-          console.log('取消高亮');
-          // 取消高亮
-          this.chart.dispatchAction({
-            type: 'downplay',
-            seriesIndex: 0,
-            dataIndex: iidx
-          });
-          this.selectedIndex = -1;
-
-          const emptyFilter = {
-            id_no: '',
-            region: [],
-            category: '',
-            detail_category: [],
-            timeRange: [],
-            time: ''
-          };
-          this.$emit('update:filter', emptyFilter);
-          return;
-        }
-
-      if (this.selectedIndex !== -1) {
-        this.chart.dispatchAction({
-          type: 'highlight',
-          seriesIndex: 0,
-          dataIndex: this.sel_idx
-        });
-      }
-      
-      this.chart.dispatchAction({
-        type: 'highlight',
-        seriesIndex: 0,
-        dataIndex: iidx
-      });
-      this.selectedIndex = clickedId;
-      this.sel_idx = iidx;
-
-      const clickedItem = this.data.find(d => d.id_no === clickedId);
-      if (!clickedItem) return;
-
-      const f = toRaw(this.filter);
-      const newFilter = {
-        id_no: clickedItem.id_no,                  
-        region: [clickedItem.region_en],             
-        category: clickedItem.category_short,        
-        detail_category: [
-          clickedItem.C1,
-          clickedItem.C2,
-          clickedItem.C3,
-          clickedItem.C4,
-          clickedItem.C5,
-          clickedItem.C6,
-          clickedItem.N7,
-          clickedItem.N8,
-          clickedItem.N9,
-          clickedItem.N10
-        ],
-        timeRange: f.timeRange,
-        time: f.time
-      };
-      this.$emit('update:filter', newFilter);
       });
     }, 100)
   }
-}
-}
+};
 </script>
 
 <style>
