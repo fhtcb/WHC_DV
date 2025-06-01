@@ -6,6 +6,9 @@
 </template>
 
 <script>
+
+
+
 export default {
   name: 'MainModule',
   props: {
@@ -17,6 +20,7 @@ export default {
   },
   data() {
     return {
+
       chartData: [],
       maxRadius: 0,
       dialogVisible: false,
@@ -26,30 +30,30 @@ export default {
 
   watch: {
     data: {
-      handler(newData) {
-        // 这里重新处理数据并刷新图表
-        const data = newData.map(dataItem => [
-          dataItem['longitude'],
-          dataItem['latitude'],
-          dataItem['name_en'],
-          Math.sqrt(dataItem['area_hectares']),
-          dataItem['category_short'],
-          dataItem['danger'],
-          dataItem['region_en'],
-          dataItem['short_description_en'],
-          dataItem['name_en']
-        ]);
-        this.chartData = data;
-        this.maxRadius = data.reduce((max, item) => Math.max(max, item[3] || 0), 0);
-        if (this.chart) {
-          this.chart.setOption({
-            series: [{ data: this.chartData }],
-            visualMap: { max: this.maxRadius }
-          });
-        }
-      },
-      immediate: true // 初始化时也执行一次
+    handler(newData) {
+      // 这里重新处理数据并刷新图表
+      const data = newData.map(dataItem => [
+        dataItem['longitude'],
+        dataItem['latitude'],
+        dataItem['name_en'],
+        Math.sqrt(dataItem['area_hectares']),
+        dataItem['category_short'],
+        dataItem['danger'],
+        dataItem['region_en'],
+        dataItem['short_description_en'],
+        dataItem['name_en']
+      ]);
+      this.chartData = data;
+      this.maxRadius = data.reduce((max, item) => Math.max(max, item[3] || 0), 0);
+      if (this.chart) {
+        this.chart.setOption({
+          series: [{ data: this.chartData }],
+          visualMap: { max: this.maxRadius }
+        });
+      }
     },
+    immediate: true // 初始化时也执行一次
+  },
     dangerMode(newVal) {
       console.log('dangerMode changed:', newVal); // 加个日志
       if (this.chart) {
