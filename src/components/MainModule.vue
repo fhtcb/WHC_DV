@@ -306,11 +306,11 @@ export default {
               const category = params.value[4]; // category_short 的值
               switch (category) {
                 case 'C':
-                  return 'rgba(0, 0, 255, 0.3)'; // Cultural
+                  return 'rgba(255, 255, 0, 0.3)'; // Cultural
                 case 'N':
                   return 'rgba(0, 255, 0, 0.3)'; // Natural
                 case 'C/N':
-                  return 'rgba(0, 255, 255,0.3)'; // C/N
+                  return 'rgba(102, 204, 255,0.3)'; // C/N
               }
 
             },
