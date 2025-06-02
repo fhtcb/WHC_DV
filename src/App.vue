@@ -28,7 +28,7 @@
     </div>
     <div class="area small right">
       <el-card shadow="hover" class="area-card">
-        <SmallModule5 :data="mainData"  v-model:filter="filter" />
+        <SmallModule5 :dangerMode="dangerMode " :data="mainData" :filter="filter" />
       </el-card>
     </div>
   </div>

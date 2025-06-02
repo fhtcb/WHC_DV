@@ -14,7 +14,7 @@ export default {
   props: {
     filter: Object,
     dangerMode: Boolean,
-    data: Array
+    data: Object
   },
   emits: ['update:filter'],
   setup(props, { emit }) {
