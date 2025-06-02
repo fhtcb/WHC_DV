@@ -18,7 +18,7 @@
     </div>
     <div class="area small left">
       <el-card shadow="hover" class="area-card">
-        <RelationGraph :data="mainData" :filter="filter" @filterUpdate = "(newFilter) => {filter = newFilter;}" />
+        <RelationGraph :dangerMode="dangerMode " :data="mainData" :filter="filter" />
       </el-card>
     </div>
     <div class="area bottom">

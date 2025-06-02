@@ -8,14 +8,21 @@ import { onMounted, ref } from 'vue';
 
 export default {
   name: 'RelationGraph',
-  props: {
+   props: {
+    filter: {
+      type: Object,
+      required: true
+    },
+    dangerMode: Boolean,
     data: {
       type: Array,
       default: () => []
-    },
-    filter: Object
+    }
   },
-  setup() {
+  emits: [
+    'update:filter'
+  ],
+  setup(props,{ emit }) {
     const chartContainer = ref(null);
     const myChart = ref(null);
     const whcData= {
@@ -200,8 +207,8 @@ export default {
       myChart.value.on('click', (params) => {
         if (params.dataType === 'node') {
           console.log('node clicked')
-          /*this.$emit('filterUpdate', 'C');*/
-          console.log(this.filter.detail_category)
+          emit('update:filter.detail_category', 'C');
+          console.log(props.filter.detail_category)
           // 高亮当前节点及其关联的边
           myChart.value.dispatchAction({
             type: 'select',
@@ -210,8 +217,8 @@ export default {
           });
         } else if (params.dataType === 'edge') {
           console.log('edge clicked')
-          /*this.$emit('update-filter', newFilter);*/
-          console.log(this.filter.detail_category)
+          emit('update:filter.detail_category', 'N');
+          console.log(props.filter.detail_category)
           // 高亮当前边
           myChart.value.dispatchAction({
             type: 'select',
@@ -220,8 +227,8 @@ export default {
           });
         }else{
           myChart.dispatchAction({ type: 'downplay' });  // 取消所有高亮
-          /*this.$emit('update-filter', newFilter);*/
-          console.log(this.filter.detail_category)
+          emit('update:filter.detail_category', 'C/N');
+          console.log(props.filter.detail_category)
         }
       });
 
