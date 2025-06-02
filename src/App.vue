@@ -2,7 +2,7 @@
   <div class="dashboard-grid">
     <div class="area big-side left">
       <el-card shadow="hover" class="area-card">
-        <RegionBar :data="mainData" :filter="filter" />
+        <RegionBar :data="mainData" v-model:filter="filter" />
       </el-card>
     </div>
     <div class="area main">
@@ -13,22 +13,22 @@
     </div>
     <div class="area big-side right">
       <el-card shadow="hover" class="area-card">
-        <SmallModule2 :data="mainData" :filter="filter" />
+        <SmallModule2 :data="mainData"  v-model:filter="filter" />
       </el-card>
     </div>
     <div class="area small left">
       <el-card shadow="hover" class="area-card">
-        <RelationGraph :dangerMode="dangerMode " :data="mainData" :filter="filter" />
+        <RelationGraph :dangerMode="dangerMode " :data="mainData"  v-model:filter="filter" />
       </el-card>
     </div>
     <div class="area bottom">
       <el-card shadow="hover" class="area-card">
-        <TimeAxis :data="mainData" :filter="filter"/>
+        <TimeAxis :data="mainData"  v-model:filter="filter"/>
       </el-card>
     </div>
     <div class="area small right">
       <el-card shadow="hover" class="area-card">
-        <SmallModule5 :data="mainData" :filter="filter" />
+        <SmallModule5 :data="mainData"  v-model:filter="filter" />
       </el-card>
     </div>
   </div>

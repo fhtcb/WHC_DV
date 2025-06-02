@@ -30,7 +30,7 @@ const props = defineProps({
 });
 
 
-const emit = defineEmits(['filterUpdate']);
+const emit = defineEmits(['update:filter']);
 
 const chartRef = ref(null);
 let chartInstance = null;
@@ -280,7 +280,7 @@ const handleChartClick = (params) => {
     }
     
     // 更新父组件的筛选器
-    emit('filterUpdate', { 
+    emit('update:filter', { 
       ...props.filter,
       region: currentFilter.value.region ? [currentFilter.value.region] : [],
       category: currentFilter.value.category || ''
@@ -320,7 +320,7 @@ const handleMouseOut = (params) => {
 // 清除地区筛选
 const clearRegionFilter = () => {
   currentFilter.value.region = null;
-  emit('filterUpdate', { 
+  emit('update:filter', { 
     ...props.filter,
     region: []
   });
@@ -330,7 +330,7 @@ const clearRegionFilter = () => {
 // 清除类别筛选
 const clearCategoryFilter = () => {
   currentFilter.value.category = null;
-  emit('filterUpdate', { 
+  emit('update:filter', { 
     ...props.filter,
     category: ''
   });
