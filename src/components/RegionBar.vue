@@ -29,7 +29,6 @@ const props = defineProps({
   }
 });
 
-
 const emit = defineEmits(['update:filter']);
 
 const chartRef = ref(null);
@@ -51,41 +50,124 @@ const categoryLabels = {
   'C/N': '混合遗产'
 };
 
+// 详细类别字段
+const detailFields = [
+  'C1', 'C2', 'C3', 'C4', 'C5', 'C6',
+  'N7', 'N8', 'N9', 'N10'
+];
+
 // 当前筛选状态
 const currentFilter = ref({
   region: null,
   category: null
 });
 
-// 计算每个地区的遗产数量分布
+// 计算是否应用了筛选条件
+const filterApplied = computed(() => {
+  return props.filter.timeRange && props.filter.timeRange.length === 2;
+});
+
+// 计算是否应用了详细类别筛选
+const detailCategoryApplied = computed(() => {
+  return props.filter.detail_category && 
+         props.filter.detail_category.length === 10 &&
+         props.filter.detail_category.some(v => v === 1);
+});
+
+// 计算每个地区的遗产数量分布（增加时间范围和详细类别筛选）
 const regionData = computed(() => {
   // 初始化数据
   const result = {
     cultural: Array(regions.length).fill(0),
     natural: Array(regions.length).fill(0),
-    mixed: Array(regions.length).fill(0)
+    mixed: Array(regions.length).fill(0),
+    danger: Array(regions.length).fill(0),
+    nonDanger: Array(regions.length).fill(0)
   };
   
-  // 统计每个地区的遗产类别数量
+  // 获取筛选条件
+  const f = props.filter;
+  
+  // 统计每个地区的遗产类别数量（应用筛选条件）
   props.data.forEach(item => {
+    // 1. 检查时间范围筛选
+    if (Array.isArray(f.timeRange) && f.timeRange.length === 2) {
+      const [startYear, endYear] = f.timeRange;
+      const year = parseYear(item.date_inscribed);
+      
+      if (year === null || year < startYear || year > endYear) {
+        return; // 跳过不符合时间范围的数据
+      }
+    }
+    
+    // 2. 检查详细类别筛选
+    if (Array.isArray(f.detail_category) && f.detail_category.length === 10) {
+      for (let i = 0; i < 10; i++) {
+        if (f.detail_category[i] === 1) {
+          const fieldName = detailFields[i];
+          if (item[fieldName] !== 1) {
+            return; // 跳过不符合详细类别筛选的数据
+          }
+        }
+      }
+    }
+    
+    // 3. 应用其他筛选条件（如果有）
+    // 这里可以添加其他筛选条件
+    
+    // 通过所有筛选，进行计数
     const regionIndex = regions.indexOf(item.region_en);
     if (regionIndex === -1) return;
     
-    switch(item.category_short) {
-      case 'C':
-        result.cultural[regionIndex]++;
-        break;
-      case 'N':
-        result.natural[regionIndex]++;
-        break;
-      case 'C/N':
-        result.mixed[regionIndex]++;
-        break;
+    // 标准模式：按类别计数
+    if (!props.filter.dangerMode) {
+      switch(item.category_short) {
+        case 'C':
+          result.cultural[regionIndex]++;
+          break;
+        case 'N':
+          result.natural[regionIndex]++;
+          break;
+        case 'C/N':
+          result.mixed[regionIndex]++;
+          break;
+      }
+    } 
+    // 危险模式：按危险状态计数
+    else {
+      if (item.danger === 1) {
+        result.danger[regionIndex]++;
+      } else {
+        result.nonDanger[regionIndex]++;
+      }
     }
   });
   
   return result;
 });
+
+// 辅助函数：解析年份
+function parseYear(dateInscribed) {
+  if (!dateInscribed) return null;
+  
+  // 尝试解析年份
+  let year = dateInscribed;
+  
+  if (typeof year === 'string') {
+    // 尝试从字符串中提取年份
+    const yearMatch = year.match(/\d{4}/);
+    if (yearMatch) {
+      year = parseInt(yearMatch[0]);
+    }
+  }
+  
+  // 确保年份是有效的数字
+  if (typeof year === 'number' && !isNaN(year)) {
+    return year;
+  }
+  
+  return null;
+}
 
 // 初始化图表
 const initChart = () => {
@@ -113,7 +195,9 @@ const updateChart = () => {
     ? { 
         'C': 0, 
         'N': 1, 
-        'C/N': 2 
+        'C/N': 2,
+        'danger': 0,
+        'nonDanger': 1
       }[currentFilter.value.category] 
     : null;
   
@@ -121,14 +205,31 @@ const updateChart = () => {
     ? regions.indexOf(currentFilter.value.region) 
     : null;
   
-  // 图表配置
-  const option = {
+  // 根据模式确定图表配置
+  const option = props.filter.dangerMode ? getDangerModeOption() : getStandardModeOption();
+  
+  // 应用配置
+  chartInstance.setOption(option, true);
+  
+  // 应用高亮状态
+  if (highlightSeriesIndex !== null && highlightDataIndex !== null) {
+    chartInstance.dispatchAction({
+      type: 'highlight',
+      seriesIndex: highlightSeriesIndex,
+      dataIndex: highlightDataIndex
+    });
+  }
+};
+
+// 获取标准模式配置
+const getStandardModeOption = () => {
+  return {
     tooltip: {
       trigger: 'axis',
       axisPointer: {
         type: 'shadow'
       },
-      backgroundColor: 'rgba(20, 25, 50, 0.8)',
+      backgroundColor: 'rgba(20, 25, 50, 0.9)',
       borderColor: '#5d9cec',
       borderWidth: 1,
       textStyle: {
@@ -136,18 +237,40 @@ const updateChart = () => {
       },
       formatter: (params) => {
         const region = params[0].name;
-        let content = `<div><strong>${region}</strong></div>`;
+        let content = `<div style="font-weight:bold;margin-bottom:10px;font-size:16px;">${region}</div>`;
+        
+        let total = 0;
+        params.forEach(param => {
+          total += param.value;
+        });
         
         params.forEach(param => {
           const category = param.seriesName;
           const count = param.value;
-          const percent = (count / params.reduce((sum, p) => sum + p.value, 0) * 100).toFixed(1);
+          const percent = total > 0 ? (count / total * 100).toFixed(1) : 0;
           
-          content += `<div style="margin-top: 5px">
-            <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${param.color};margin-right:5px"></span>
-            ${category}: <b>${count}</b> (${percent}%)
+          content += `<div style="display:flex;align-items:center;margin-bottom:5px;">
+            <div style="width:12px;height:12px;border-radius:50%;background:${param.color};margin-right:8px;"></div>
+            <div style="flex:1;">${category}:</div>
+            <div style="font-weight:bold;width:40px;text-align:right;">${count}</div>
+            <div style="width:50px;text-align:right;color:#a0a0ff;">(${percent}%)</div>
           </div>`;
         });
+        
+        // 添加筛选状态提示
+        if (filterApplied.value || detailCategoryApplied.value) {
+          content += `<div style="margin-top:10px;padding-top:8px;border-top:1px dashed rgba(100,120,255,0.3);color:#a0a0d0;font-size:12px;">`;
+          
+          if (filterApplied.value) {
+            content += `时间范围: ${props.filter.timeRange[0]} - ${props.filter.timeRange[1]}<br>`;
+          }
+          
+          if (detailCategoryApplied.value) {
+            content += `已应用详细类别筛选`;
+          }
+          
+          content += `</div>`;
+        }
         
         return content;
       }
@@ -157,7 +280,8 @@ const updateChart = () => {
       textStyle: {
         color: '#a0a0d0'
       },
-      selectedMode: false 
+      selectedMode: false,
+      itemGap: 20
     },
     grid: {
       left: '3%',
@@ -177,11 +301,13 @@ const updateChart = () => {
       axisLabel: {
         color: '#a0a0d0',
         interval: 0,
-        rotate: 30
+        rotate: 30,
+        fontSize: 12
       },
       name: '地区',
       nameTextStyle: {
-        color: '#a0a0d0'
+        color: '#a0a0d0',
+        fontSize: 12
       },
       axisPointer: {
         type: 'shadow'
@@ -199,7 +325,8 @@ const updateChart = () => {
         color: '#a0a0d0'
       },
       nameTextStyle: {
-        color: '#a0a0d0'
+        color: '#a0a0d0',
+        fontSize: 12
       },
       splitLine: {
         lineStyle: {
@@ -213,10 +340,15 @@ const updateChart = () => {
         type: 'bar',
         stack: 'total',
         emphasis: {
-          focus: 'series'
+          focus: 'series',
+          itemStyle: {
+            shadowBlur: 10,
+            shadowColor: 'rgba(84, 112, 198, 0.8)'
+          }
         },
         itemStyle: {
-          color: '#5470c6'
+          color: '#5470c6',
+          borderRadius: [3, 3, 0, 0]
         },
         data: regionData.value.cultural
       },
@@ -225,10 +357,15 @@ const updateChart = () => {
         type: 'bar',
         stack: 'total',
         emphasis: {
-          focus: 'series'
+          focus: 'series',
+          itemStyle: {
+            shadowBlur: 10,
+            shadowColor: 'rgba(145, 204, 117, 0.8)'
+          }
         },
         itemStyle: {
-          color: '#91cc75'
+          color: '#91cc75',
+          borderRadius: [3, 3, 0, 0]
         },
         data: regionData.value.natural
       },
@@ -237,54 +374,220 @@ const updateChart = () => {
         type: 'bar',
         stack: 'total',
         emphasis: {
-          focus: 'series'
+          focus: 'series',
+          itemStyle: {
+            shadowBlur: 10,
+            shadowColor: 'rgba(250, 200, 88, 0.8)'
+          }
         },
         itemStyle: {
-          color: '#fac858'
+          color: '#fac858',
+          borderRadius: [3, 3, 0, 0]
         },
         data: regionData.value.mixed
       }
     ]
   };
-  
-  // 应用配置
-  chartInstance.setOption(option, true);
-  
-  // 应用高亮状态
-  if (highlightSeriesIndex !== null && highlightDataIndex !== null) {
-    chartInstance.dispatchAction({
-      type: 'highlight',
-      seriesIndex: highlightSeriesIndex,
-      dataIndex: highlightDataIndex
-    });
-  }
+};
+
+// 获取危险模式配置
+const getDangerModeOption = () => {
+  return {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'shadow'
+      },
+      backgroundColor: 'rgba(20, 25, 50, 0.9)',
+      borderColor: '#5d9cec',
+      borderWidth: 1,
+      textStyle: {
+        color: '#e0e0ff'
+      },
+      formatter: (params) => {
+        const region = params[0].name;
+        let content = `<div style="font-weight:bold;margin-bottom:10px;font-size:16px;">${region}</div>`;
+        
+        let total = 0;
+        params.forEach(param => {
+          total += param.value;
+        });
+        
+        params.forEach(param => {
+          const category = param.seriesName;
+          const count = param.value;
+          const percent = total > 0 ? (count / total * 100).toFixed(1) : 0;
+          
+          content += `<div style="display:flex;align-items:center;margin-bottom:5px;">
+            <div style="width:12px;height:12px;border-radius:50%;background:${param.color};margin-right:8px;"></div>
+            <div style="flex:1;">${category}:</div>
+            <div style="font-weight:bold;width:40px;text-align:right;">${count}</div>
+            <div style="width:50px;text-align:right;color:#a0a0ff;">(${percent}%)</div>
+          </div>`;
+        });
+        
+        // 添加筛选状态提示
+        if (filterApplied.value || detailCategoryApplied.value) {
+          content += `<div style="margin-top:10px;padding-top:8px;border-top:1px dashed rgba(100,120,255,0.3);color:#a0a0d0;font-size:12px;">`;
+          
+          if (filterApplied.value) {
+            content += `时间范围: ${props.filter.timeRange[0]} - ${props.filter.timeRange[1]}<br>`;
+          }
+          
+          if (detailCategoryApplied.value) {
+            content += `已应用详细类别筛选`;
+          }
+          
+          content += `</div>`;
+        }
+        
+        return content;
+      }
+    },
+    legend: {
+      data: ['濒危遗产', '非濒危遗产'],
+      textStyle: {
+        color: '#a0a0d0'
+      },
+      selectedMode: false,
+      itemGap: 20
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '15%',
+      top: '15%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: regions.map(r => r.replace(' and ', ' & ')),
+      axisLine: {
+        lineStyle: {
+          color: '#5d9cec'
+        }
+      },
+      axisLabel: {
+        color: '#a0a0d0',
+        interval: 0,
+        rotate: 30,
+        fontSize: 12
+      },
+      name: '地区',
+      nameTextStyle: {
+        color: '#a0a0d0',
+        fontSize: 12
+      },
+      axisPointer: {
+        type: 'shadow'
+      }
+    },
+    yAxis: {
+      type: 'value',
+      name: '遗产数量',
+      axisLine: {
+        lineStyle: {
+          color: '#5d9cec'
+        }
+      },
+      axisLabel: {
+        color: '#a0a0d0'
+      },
+      nameTextStyle: {
+        color: '#a0a0d0',
+        fontSize: 12
+      },
+      splitLine: {
+        lineStyle: {
+          color: 'rgba(100, 100, 255, 0.1)'
+        }
+      }
+    },
+    series: [
+      {
+        name: '濒危遗产',
+        type: 'bar',
+        stack: 'total',
+        emphasis: {
+          focus: 'series',
+          itemStyle: {
+            shadowBlur: 10,
+            shadowColor: 'rgba(235, 64, 52, 0.8)'
+          }
+        },
+        itemStyle: {
+          color: '#ee6666',
+          borderRadius: [3, 3, 0, 0]
+        },
+        data: regionData.value.danger
+      },
+      {
+        name: '非濒危遗产',
+        type: 'bar',
+        stack: 'total',
+        emphasis: {
+          focus: 'series',
+          itemStyle: {
+            shadowBlur: 10,
+            shadowColor: 'rgba(150, 150, 150, 0.8)'
+          }
+        },
+        itemStyle: {
+          color: '#9da5b3',
+          borderRadius: [3, 3, 0, 0]
+        },
+        data: regionData.value.nonDanger
+      }
+    ]
+  };
 };
 
 // 处理图表点击事件
 const handleChartClick = (params) => {
   if (params.componentType === 'series') {
     const region = regions[params.dataIndex];
-    const category = { 
-      '文化遗产': 'C', 
-      '自然遗产': 'N', 
-      '混合遗产': 'C/N' 
-    }[params.seriesName];
     
-    // 如果点击的是已选中的部分，则取消选择
-    if (currentFilter.value.region === region && currentFilter.value.category === category) {
-      currentFilter.value.region = null;
-      currentFilter.value.category = null;
-    } else {
-      currentFilter.value.region = region;
-      currentFilter.value.category = category;
+    // 在危险模式下，仅设置地区筛选
+    if (props.filter.dangerMode) {
+      // 如果点击的是已选中的地区，则取消选择
+      if (currentFilter.value.region === region) {
+        currentFilter.value.region = null;
+      } else {
+        currentFilter.value.region = region;
+      }
+      
+      // 更新父组件的筛选器（只更新地区）
+      emit('update:filter', { 
+        ...props.filter,
+        region: currentFilter.value.region ? [currentFilter.value.region] : []
+      });
+    } 
+    // 在标准模式下，设置地区和类别
+    else {
+      const category = { 
+        '文化遗产': 'C', 
+        '自然遗产': 'N', 
+        '混合遗产': 'C/N',
+        '濒危遗产': 'danger',
+        '非濒危遗产': 'nonDanger'
+      }[params.seriesName];
+      
+      // 如果点击的是已选中的部分，则取消选择
+      if (currentFilter.value.region === region && currentFilter.value.category === category) {
+        currentFilter.value.region = null;
+        currentFilter.value.category = null;
+      } else {
+        currentFilter.value.region = region;
+        currentFilter.value.category = category;
+      }
+      
+      // 更新父组件的筛选器
+      emit('update:filter', { 
+        ...props.filter,
+        region: currentFilter.value.region ? [currentFilter.value.region] : [],
+        category: currentFilter.value.category || ''
+      });
     }
-    
-    // 更新父组件的筛选器
-    emit('update:filter', { 
-      ...props.filter,
-      region: currentFilter.value.region ? [currentFilter.value.region] : [],
-      category: currentFilter.value.category || ''
-    });
     
     // 更新图表
     updateChart();
@@ -297,7 +600,7 @@ const handleMouseOver = (params) => {
     // 高亮整个柱子
     chartInstance.dispatchAction({
       type: 'highlight',
-      seriesIndex: [0, 1, 2],
+      seriesIndex: props.filter.dangerMode ? [0, 1] : [0, 1, 2],
       dataIndex: params.dataIndex
     });
   } else if (params.componentType === 'series') {
@@ -311,7 +614,7 @@ const handleMouseOut = (params) => {
     // 取消高亮
     chartInstance.dispatchAction({
       type: 'downplay',
-      seriesIndex: [0, 1, 2],
+      seriesIndex: props.filter.dangerMode ? [0, 1] : [0, 1, 2],
       dataIndex: params.dataIndex
     });
   }
@@ -356,6 +659,15 @@ watch(() => props.filter, (newFilter) => {
   updateChart();
 }, { deep: true });
 
+// 监听危险模式变化
+watch(() => props.filter.dangerMode, () => {
+  // 当模式切换时，重置类别筛选
+  currentFilter.value.category = null;
+  
+  // 更新图表
+  updateChart();
+});
+
 // 组件挂载时初始化图表
 onMounted(() => {
   nextTick(() => {
@@ -377,6 +689,9 @@ onMounted(() => {
   flex-direction: column;
   height: 100%;
   padding: 10px;
+  position: relative;
+  background: rgba(15, 20, 40, 0.7);
+  border-radius: 8px;
 }
 
 .chart-container {
@@ -390,9 +705,35 @@ onMounted(() => {
   gap: 10px;
   padding: 10px;
   justify-content: center;
+  flex-wrap: wrap;
+  z-index: 10;
 }
 
 .filter-status .el-tag {
   cursor: pointer;
+  font-weight: bold;
+  padding: 6px 12px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.mode-indicator {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 10;
+}
+
+.mode-indicator .el-tag {
+  font-weight: bold;
+  padding: 6px 12px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  background: rgba(235, 158, 52, 0.9);
+  border: none;
+}
+
+.mode-indicator .el-tag.el-tag--danger {
+  background: rgba(238, 102, 102, 0.9);
 }
 </style>
