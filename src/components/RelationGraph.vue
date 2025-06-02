@@ -103,7 +103,7 @@ export default {
         // 重置所有filter值为0
         const newFilter = {
           ...props.filter,
-          detail_category: [1,1,1,1,1,1,1,1,1,1]
+          detail_category: []
         };
         emit('update:filter', newFilter);
         

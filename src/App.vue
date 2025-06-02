@@ -50,7 +50,7 @@ const filter = ref({//筛选器，会更改其他组件内容
     id_no: '', //选中点的id，只与主图和详细信息有关，mainData中的id_no字段
     region: [],//包括：Africa, Arab States，Asia and the Pacific，Europe and North America，Latin America and the Caribbean。其中只有4个遗产是地区的组合，所以是数组，支持多选。mainData中的region_en字段
     category: '',//包括：C, N, C/N。单选。mainData中的category_short字段
-    detail_category: [1,1,1,1,1,1,1,1,1,1],//数组，C1~N10，1为有，0为无。
+    detail_category: [],//数组，C1~N10，1为有，0为无。
     timeRange: [],//数组，包括起始时间与终止时间
     time: '',//时间点，只与主图和时间轴有关
 })
