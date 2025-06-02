@@ -1,375 +1,398 @@
 <template>
   <div class="region-bar-container">
-    <div class="mode-toggle">
-    <button 
-        :class="{ active: currentMode === 'type' }" 
-        @click="changeMode('type')"
-    >
-    遗产类型
-    </button>
-    <button 
-        :class="{ active: currentMode === 'endangered' }" 
-        @click="changeMode('endangered')"
-    >
-        濒危状态
-    </button>
-    </div>
+    <div ref="chartRef" class="chart-container"></div>
     
-    <div class="legend">
-      <div v-if="currentMode === 'type'" class="legend-items">
-        <div class="legend-item" v-for="item in typeLegend" :key="item.name">
-          <div class="color-box" :style="{ backgroundColor: item.color }"></div>
-          <span>{{ item.name }}</span>
-        </div>
-      </div>
-      <div v-else class="legend-items">
-        <div class="legend-item" v-for="item in endangeredLegend" :key="item.name">
-          <div class="color-box" :style="{ backgroundColor: item.color }"></div>
-          <span>{{ item.name }}</span>
-        </div>
-      </div>
+    <!-- 当前筛选状态显示 -->
+    <div class="filter-status" v-if="currentFilter.region || currentFilter.category">
+      <el-tag v-if="currentFilter.region" type="success" closable @close="clearRegionFilter">
+        地区: {{ currentFilter.region }}
+      </el-tag>
+      <el-tag v-if="currentFilter.category" type="info" closable @close="clearCategoryFilter">
+        类别: {{ categoryLabels[currentFilter.category] }}
+      </el-tag>
     </div>
-    
-    <div ref="chart" class="chart-container"></div>
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref, watch, onMounted, computed, nextTick } from 'vue';
 import * as echarts from 'echarts';
 
-export default {
-  name: 'RegionBar',
+const props = defineProps({
+  data: {
+    type: Array,
+    default: () => []
+  },
+  filter: {
+    type: Object,
+    default: () => ({})
+  }
+});
+
+
+const emit = defineEmits(['filterUpdate']);
+
+const chartRef = ref(null);
+let chartInstance = null;
+
+// 地区列表
+const regions = [
+  'Africa',
+  'Arab States',
+  'Asia and the Pacific',
+  'Europe and North America',
+  'Latin America and the Caribbean'
+];
+
+// 类别标签
+const categoryLabels = {
+  'C': '文化遗产',
+  'N': '自然遗产',
+  'C/N': '混合遗产'
+};
+
+// 当前筛选状态
+const currentFilter = ref({
+  region: null,
+  category: null
+});
+
+// 计算每个地区的遗产数量分布
+const regionData = computed(() => {
+  // 初始化数据
+  const result = {
+    cultural: Array(regions.length).fill(0),
+    natural: Array(regions.length).fill(0),
+    mixed: Array(regions.length).fill(0)
+  };
   
-  props: {
-    // 从父组件传入的数据
-    heritageData: {
-      type: Array,
-      default: () => [],
-      required: true
-    },
-    // 父组件选中的数据点
-    selectedItem: {
-      type: Object,
-      default: null
+  // 统计每个地区的遗产类别数量
+  props.data.forEach(item => {
+    const regionIndex = regions.indexOf(item.region_en);
+    if (regionIndex === -1) return;
+    
+    switch(item.category_short) {
+      case 'C':
+        result.cultural[regionIndex]++;
+        break;
+      case 'N':
+        result.natural[regionIndex]++;
+        break;
+      case 'C/N':
+        result.mixed[regionIndex]++;
+        break;
     }
-  },
+  });
   
-  data() {
-    return {
-      currentMode: 'type', // 'type' 或 'endangered'
-      chartInstance: null,
-      typeLegend: [
-        { name: '文化遗产', color: '#5470C6' },
-        { name: '自然遗产', color: '#91CC75' },
-        { name: '混合遗产', color: '#FAC858' }
-      ],
-      endangeredLegend: [
-        { name: '濒危遗产', color: '#EE6666' },
-        { name: '非濒危遗产', color: '#73C0DE' }
-      ],
-      regions: [
-        'Africa', 
-        'Asia and the Pacific', 
-        'Europe and North America', 
-        'Arab States', 
-        'Latin America and the Caribbean', 
-        'Asia and the Pacific,Europe and North America',
-        'Asia and the Pacific,Europe and North America,Latin America and the Caribbean'
-      ]
-    };
-  },
+  return result;
+});
+
+// 初始化图表
+const initChart = () => {
+  if (!chartRef.value) return;
   
-  computed: {
-    chartData() {
-      if (!this.heritageData.length) return null;
-      
-      const data = { series: [], categories: this.regions };
-      
-      if (this.currentMode === 'type') {
-        // 按遗产类型统计
-        const cultural = new Array(this.regions.length).fill(0);
-        const natural = new Array(this.regions.length).fill(0);
-        const mixed = new Array(this.regions.length).fill(0);
+  if (chartInstance) {
+    chartInstance.dispose();
+  }
+  
+  chartInstance = echarts.init(chartRef.value);
+  
+  updateChart();
+  
+  chartInstance.on('click', handleChartClick);
+  chartInstance.on('mouseover', handleMouseOver);
+  chartInstance.on('mouseout', handleMouseOut);
+};
+
+// 更新图表
+const updateChart = () => {
+  if (!chartInstance || !regionData.value) return;
+  
+  // 高亮状态
+  const highlightSeriesIndex = currentFilter.value.category 
+    ? { 
+        'C': 0, 
+        'N': 1, 
+        'C/N': 2 
+      }[currentFilter.value.category] 
+    : null;
+  
+  const highlightDataIndex = currentFilter.value.region 
+    ? regions.indexOf(currentFilter.value.region) 
+    : null;
+  
+  // 图表配置
+  const option = {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'shadow'
+      },
+      backgroundColor: 'rgba(20, 25, 50, 0.8)',
+      borderColor: '#5d9cec',
+      borderWidth: 1,
+      textStyle: {
+        color: '#e0e0ff'
+      },
+      formatter: (params) => {
+        const region = params[0].name;
+        let content = `<div><strong>${region}</strong></div>`;
         
-        this.heritageData.forEach(item => {
-          const regionIndex = this.regions.indexOf(item.region);
-          if (regionIndex !== -1) {
-            if (item.type === 'Cultural') cultural[regionIndex]++;
-            else if (item.type === 'Natural') natural[regionIndex]++;
-            else if (item.type === 'Mixed') mixed[regionIndex]++;
-          }
+        params.forEach(param => {
+          const category = param.seriesName;
+          const count = param.value;
+          const percent = (count / params.reduce((sum, p) => sum + p.value, 0) * 100).toFixed(1);
+          
+          content += `<div style="margin-top: 5px">
+            <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${param.color};margin-right:5px"></span>
+            ${category}: <b>${count}</b> (${percent}%)
+          </div>`;
         });
         
-        data.series = [
-          { name: '文化遗产', type: 'bar', stack: 'total', data: cultural, color: '#5470C6' },
-          { name: '自然遗产', type: 'bar', stack: 'total', data: natural, color: '#91CC75' },
-          { name: '混合遗产', type: 'bar', stack: 'total', data: mixed, color: '#FAC858' }
-        ];
-      } else {
-        // 按濒危状态统计
-        const endangered = new Array(this.regions.length).fill(0);
-        const notEndangered = new Array(this.regions.length).fill(0);
-        
-        this.heritageData.forEach(item => {
-          const regionIndex = this.regions.indexOf(item.region);
-          if (regionIndex !== -1) {
-            if (item.endangered) endangered[regionIndex]++;
-            else notEndangered[regionIndex]++;
-          }
-        });
-        
-        data.series = [
-          { name: '濒危遗产', type: 'bar', stack: 'total', data: endangered, color: '#EE6666' },
-          { name: '非濒危遗产', type: 'bar', stack: 'total', data: notEndangered, color: '#73C0DE' }
-        ];
-      }
-      
-      return data;
-    }
-  },
-  
-  watch: {
-    heritageData: {
-      deep: true,
-      handler() {
-        this.updateChart();
+        return content;
       }
     },
-    // 当选中的数据点变化时更新高亮
-    selectedItem(newVal) {
-      this.highlightRegion(newVal ? newVal.region : null);
+    legend: {
+      data: ['文化遗产', '自然遗产', '混合遗产'],
+      textStyle: {
+        color: '#a0a0d0'
+      },
+      selectedMode: false 
     },
-    // 当模式变化时更新图表
-    currentMode() {
-      this.updateChart();
-    }
-  },
-  
-  mounted() {
-    this.initChart();
-    window.addEventListener('resize', this.handleResize);
-  },
-  
-  beforeDestroy() {
-    if (this.chartInstance) {
-      this.chartInstance.dispose();
-    }
-    window.removeEventListener('resize', this.handleResize);
-  },
-  
-  methods: {
-    // 初始化图表
-    initChart() {
-      this.chartInstance = echarts.init(this.$refs.chart);
-      this.updateChart();
-      
-      // 监听图表点击事件
-      this.chartInstance.on('click', (params) => {
-        if (params.componentType === 'series' && params.seriesType === 'bar') {
-          const region = this.regions[params.dataIndex];
-          this.$emit('region-selected', region);
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '15%',
+      top: '15%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: regions.map(r => r.replace(' and ', ' & ')),
+      axisLine: {
+        lineStyle: {
+          color: '#5d9cec'
         }
-      });
+      },
+      axisLabel: {
+        color: '#a0a0d0',
+        interval: 0,
+        rotate: 30
+      },
+      name: '地区',
+      nameTextStyle: {
+        color: '#a0a0d0'
+      },
+      axisPointer: {
+        type: 'shadow'
+      }
     },
-    
-    // 更新图表数据
-    updateChart() {
-      if (!this.chartInstance || !this.chartData) return;
-      
-      const option = {
-        tooltip: {
-          trigger: 'axis',
-          axisPointer: {
-            type: 'shadow'
-          },
-          formatter: (params) => {
-            const region = this.regions[params[0].dataIndex];
-            let result = `<div style="margin-bottom:5px;font-weight:bold">${region}</div>`;
-            let total = 0;
-            
-            params.forEach(param => {
-              result += `<div>
-                <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${param.color};margin-right:5px"></span>
-                ${param.seriesName}: ${param.value}
-              </div>`;
-              total += param.value;
-            });
-            
-            result += `<div style="margin-top:5px;font-weight:bold">总计: ${total}</div>`;
-            return result;
-          }
-        },
-        grid: {
-          left: '3%',
-          right: '4%',
-          bottom: '15%',
-          top: '5%',
-          containLabel: true
-        },
-        xAxis: {
-          type: 'category',
-          data: this.chartData.categories,
-          axisLabel: {
-            interval: 0,
-            rotate: 25,
-            margin: 15,
-            fontSize: 12
-          }
-        },
-        yAxis: {
-          type: 'value',
-          name: '遗产数量',
-          nameTextStyle: {
-            padding: [0, 0, 0, 30]
-          }
-        },
-        series: this.chartData.series
-      };
-      
-      this.chartInstance.setOption(option, true);
-      this.highlightRegion(this.selectedItem ? this.selectedItem.region : null);
-    },
-    
-    // 高亮特定地区
-    highlightRegion(region) {
-      if (!this.chartInstance) return;
-      
-      if (region) {
-        const regionIndex = this.regions.indexOf(region);
-        if (regionIndex !== -1) {
-          // 高亮对应的柱子
-          this.chartInstance.dispatchAction({
-            type: 'highlight',
-            seriesIndex: [0, 1, 2],
-            dataIndex: regionIndex
-          });
-          
-          this.chartInstance.setOption({
-            series: this.chartData.series.map(series => {
-              return {
-                ...series,
-                itemStyle: {
-                  emphasis: {
-                    shadowBlur: 10,
-                    shadowOffsetX: 0,
-                    shadowColor: 'rgba(0, 0, 0, 0.5)'
-                  }
-                }
-              };
-            })
-          });
-          
-          this.chartInstance.dispatchAction({
-            type: 'showTip',
-            seriesIndex: 0,
-            dataIndex: regionIndex
-          });
-          
-          return;
+    yAxis: {
+      type: 'value',
+      name: '遗产数量',
+      axisLine: {
+        lineStyle: {
+          color: '#5d9cec'
+        }
+      },
+      axisLabel: {
+        color: '#a0a0d0'
+      },
+      nameTextStyle: {
+        color: '#a0a0d0'
+      },
+      splitLine: {
+        lineStyle: {
+          color: 'rgba(100, 100, 255, 0.1)'
         }
       }
-      
-      this.chartInstance.dispatchAction({
-        type: 'downplay',
-        seriesIndex: [0, 1, 2]
-      });
     },
-    
-    // 切换显示模式
-    changeMode(mode) {
-      this.currentMode = mode;
-    },
-    
-    handleResize() {
-      if (this.chartInstance) {
-        this.chartInstance.resize();
+    series: [
+      {
+        name: '文化遗产',
+        type: 'bar',
+        stack: 'total',
+        emphasis: {
+          focus: 'series'
+        },
+        itemStyle: {
+          color: '#5470c6'
+        },
+        data: regionData.value.cultural
+      },
+      {
+        name: '自然遗产',
+        type: 'bar',
+        stack: 'total',
+        emphasis: {
+          focus: 'series'
+        },
+        itemStyle: {
+          color: '#91cc75'
+        },
+        data: regionData.value.natural
+      },
+      {
+        name: '混合遗产',
+        type: 'bar',
+        stack: 'total',
+        emphasis: {
+          focus: 'series'
+        },
+        itemStyle: {
+          color: '#fac858'
+        },
+        data: regionData.value.mixed
       }
-    }
+    ]
+  };
+  
+  // 应用配置
+  chartInstance.setOption(option, true);
+  
+  // 应用高亮状态
+  if (highlightSeriesIndex !== null && highlightDataIndex !== null) {
+    chartInstance.dispatchAction({
+      type: 'highlight',
+      seriesIndex: highlightSeriesIndex,
+      dataIndex: highlightDataIndex
+    });
   }
 };
+
+// 处理图表点击事件
+const handleChartClick = (params) => {
+  if (params.componentType === 'series') {
+    const region = regions[params.dataIndex];
+    const category = { 
+      '文化遗产': 'C', 
+      '自然遗产': 'N', 
+      '混合遗产': 'C/N' 
+    }[params.seriesName];
+    
+    // 如果点击的是已选中的部分，则取消选择
+    if (currentFilter.value.region === region && currentFilter.value.category === category) {
+      currentFilter.value.region = null;
+      currentFilter.value.category = null;
+    } else {
+      currentFilter.value.region = region;
+      currentFilter.value.category = category;
+    }
+    
+    // 更新父组件的筛选器
+    emit('filterUpdate', { 
+      ...props.filter,
+      region: currentFilter.value.region ? [currentFilter.value.region] : [],
+      category: currentFilter.value.category || ''
+    });
+    
+    // 更新图表
+    updateChart();
+  }
+};
+
+// 处理鼠标悬停事件
+const handleMouseOver = (params) => {
+  if (params.componentType === 'xAxis') {
+    // 高亮整个柱子
+    chartInstance.dispatchAction({
+      type: 'highlight',
+      seriesIndex: [0, 1, 2],
+      dataIndex: params.dataIndex
+    });
+  } else if (params.componentType === 'series') {
+    // 高亮单个堆叠部分（由echarts自动处理）
+  }
+};
+
+// 处理鼠标移出事件
+const handleMouseOut = (params) => {
+  if (params.componentType === 'xAxis') {
+    // 取消高亮
+    chartInstance.dispatchAction({
+      type: 'downplay',
+      seriesIndex: [0, 1, 2],
+      dataIndex: params.dataIndex
+    });
+  }
+};
+
+// 清除地区筛选
+const clearRegionFilter = () => {
+  currentFilter.value.region = null;
+  emit('filterUpdate', { 
+    ...props.filter,
+    region: []
+  });
+  updateChart();
+};
+
+// 清除类别筛选
+const clearCategoryFilter = () => {
+  currentFilter.value.category = null;
+  emit('filterUpdate', { 
+    ...props.filter,
+    category: ''
+  });
+  updateChart();
+};
+
+// 监听数据变化
+watch(() => props.data, (newData) => {
+  if (newData.length > 0) {
+    nextTick(() => {
+      updateChart();
+    });
+  }
+}, { deep: true });
+
+// 监听筛选器变化
+watch(() => props.filter, (newFilter) => {
+  // 更新当前筛选状态
+  currentFilter.value.region = newFilter.region.length > 0 ? newFilter.region[0] : null;
+  currentFilter.value.category = newFilter.category || null;
+  
+  // 更新图表高亮
+  updateChart();
+}, { deep: true });
+
+// 组件挂载时初始化图表
+onMounted(() => {
+  nextTick(() => {
+    initChart();
+    
+    // 处理窗口大小变化
+    window.addEventListener('resize', () => {
+      if (chartInstance) {
+        chartInstance.resize();
+      }
+    });
+  });
+});
 </script>
 
 <style scoped>
 .region-bar-container {
-  width: 100%;
-  height: 100%;
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  padding: 20px;
   display: flex;
   flex-direction: column;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.header h2 {
-  margin: 0;
-  font-size: 1.4rem;
-  color: #2c3e50;
-  font-weight: 600;
-}
-
-.mode-toggle {
-  display: flex;
-  background: #f5f7fa;
-  border-radius: 30px;
-  padding: 4px;
-}
-
-.mode-toggle button {
-  padding: 8px 16px;
-  border: none;
-  background: transparent;
-  border-radius: 30px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  font-size: 0.9rem;
-}
-
-.mode-toggle button.active {
-  background: #ffffff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-  color: #3498db;
-  font-weight: 600;
-}
-
-.mode-toggle button:not(.active):hover {
-  background: rgba(255, 255, 255, 0.6);
-}
-
-.legend {
-  margin-bottom: 15px;
-}
-
-.legend-items {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  font-size: 0.85rem;
-}
-
-.color-box {
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
-  margin-right: 6px;
+  height: 100%;
+  padding: 10px;
 }
 
 .chart-container {
+  flex: 1;
   width: 100%;
-  height: 400px;
-  flex-grow: 1;
+  min-height: 250px;
+}
+
+.filter-status {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+  justify-content: center;
+}
+
+.filter-status .el-tag {
+  cursor: pointer;
 }
 </style>
