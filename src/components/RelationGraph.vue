@@ -1,30 +1,28 @@
 <template>
-  <div id="smallModule3" ref="chartContainer"></div>
+  <div class="graph-container">
+    <div id="smallModule3" ref="chartContainer"></div>
+    <button class="clear-btn" @click="clearSelection">清空选择</button>
+  </div>
 </template>
 
 <script>
 import * as echarts from 'echarts';
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 
 export default {
   name: 'RelationGraph',
-   props: {
-    filter: {
-      type: Object,
-      required: true
-    },
+  props: {
+    filter: Object,
     dangerMode: Boolean,
-    data: {
-      type: Array,
-      default: () => []
-    }
+    data: Array
   },
-  emits: [
-    'update:filter'
-  ],
-  setup(props,{ emit }) {
+  emits: ['update:filter'],
+  setup(props, { emit }) {
     const chartContainer = ref(null);
     const myChart = ref(null);
+    
+    const nodeOrder = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'N7', 'N8', 'N9', 'N10'];
+    
     const whcData= {
       "nodes":[
       {"id": "C1", "category": 0, "symbolSize": 5.22,"name": "C1"},
@@ -98,6 +96,49 @@ export default {
       {"name": "N10"}
       ]
     }
+
+    // 清空选择
+    const clearSelection = () => {
+      if (myChart.value) {
+        // 重置所有filter值为0
+        const newFilter = {
+          ...props.filter,
+          detail_category: [1,1,1,1,1,1,1,1,1,1]
+        };
+        emit('update:filter', newFilter);
+        
+        // 取消所有高亮
+        myChart.value.dispatchAction({ type: 'downplay' });
+      }
+    };
+
+    // 更新节点高亮状态
+    const updateHighlight = () => {
+      if (!myChart.value || !props.filter.detail_category) return;
+      
+      // 获取所有应该高亮的节点索引
+      const highlightIndices = [];
+      props.filter.detail_category.forEach((val, index) => {
+        if (val === 1) {
+          const nodeIndex = whcData.nodes.findIndex(node => node.name === nodeOrder[index]);
+          if (nodeIndex !== -1) {
+            highlightIndices.push(nodeIndex);
+          }
+        }
+      });
+      
+      // 先取消所有高亮
+      myChart.value.dispatchAction({ type: 'downplay' });
+      
+      // 高亮选中的节点
+      if (highlightIndices.length > 0) {
+        myChart.value.dispatchAction({
+          type: 'select',
+          seriesIndex: 0,
+          dataIndex: highlightIndices
+        });
+      }
+    };
 
     const initChart = () => {
       myChart.value = echarts.init(chartContainer.value);
@@ -204,74 +245,83 @@ export default {
       myChart.value.setOption(option);
       myChart.value.hideLoading();
 
+      // 点击事件处理
       myChart.value.on('click', (params) => {
-        if (params.dataType === 'node') {
-          console.log('node clicked')
-          emit('update:filter.detail_category', 'C');
-          console.log(props.filter.detail_category)
-          // 高亮当前节点及其关联的边
-          myChart.value.dispatchAction({
-            type: 'select',
-            seriesIndex: 0,
-            dataIndex: params.dataIndex
-          });
-        } else if (params.dataType === 'edge') {
-          console.log('edge clicked')
-          emit('update:filter.detail_category', 'N');
-          console.log(props.filter.detail_category)
-          // 高亮当前边
-          myChart.value.dispatchAction({
-            type: 'select',
-            seriesIndex: 0,
-            edgeIndex: params.dataIndex
-          });
-        }else{
-          myChart.dispatchAction({ type: 'downplay' });  // 取消所有高亮
-          emit('update:filter.detail_category', 'C/N');
-          console.log(props.filter.detail_category)
+        if (!params || params.dataType !== 'node') {
+          // 点击空白处或非节点
+          clearSelection();
+          return;
         }
-      });
 
-      myChart.value.on('click', (params) => {
-        console.log('点击事件参数:', params);
-
-        if (params.dataType === 'node') {
-          console.log('点击了节点:', params.data.name);
-          // 执行节点点击逻辑
-        } else if (params.dataType === 'edge') {
-          console.log('点击了连线:', params.data.source, '-', params.data.target);
-          // 执行连线点击逻辑
-        }
-      });
-
-      /*myChart.value.on('mouseout', () => {
-        myChart.value.dispatchAction({
-          type: 'downplay',
-          seriesIndex: 0,
+        // 获取点击的节点名称
+        const nodeName = params.data.name;
+        console.log(`click nodeName ${nodeName}`)
+        const nodeIndex = nodeOrder.indexOf(nodeName);
+        console.log(`click nodeIndex ${nodeIndex}`)
+        
+        if (nodeIndex === -1) return;
+        
+        // 创建新的filter数组
+        const newDetailCategory = props.filter.detail_category 
+        
+        // 切换选中状态 (1/0)
+        newDetailCategory[nodeIndex] = newDetailCategory[nodeIndex] === 1 ? 0 : 1;
+        
+        // 更新filter
+        emit('update:filter', {
+          ...props.filter,
+          detail_category: newDetailCategory
         });
-      });*/
+        console.log(`newDetailCategory ${props.filter.detail_category}`)
+      });
+
+      // 监听filter变化更新高亮
+      watch(() => props.filter, () => {
+        updateHighlight();
+      }, { deep: true });
     };
 
     onMounted(() => {
       initChart();
-      
-      // 窗口大小变化时重新调整图表大小
       window.addEventListener('resize', () => {
         myChart.value?.resize();
       });
     });
 
     return {
-      chartContainer
+      chartContainer,
+      clearSelection
     };
   }
 };
 </script>
 
 <style scoped>
+.graph-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
 #smallModule3 {
   width: 100%;
   height: 100%;
   margin: 0 auto;
+}
+
+.clear-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 5px 10px;
+  background-color: #090909;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.clear-btn:hover {
+  background-color: #f5f5f5;
 }
 </style>
