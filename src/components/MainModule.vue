@@ -160,14 +160,21 @@ export default {
             }
           }
           
-          // 如果 f.detail_category.length === 0，就跳过此段逻辑，相当于“全选”
+          // 如果 f.detail_category.length === 0，就跳过此段逻辑，相当于"全选"
 
           // ——————————————————————————————
           // 5. 按 timeRange（时间区间）筛选
           if (Array.isArray(f.timeRange) && f.timeRange.length === 2) {
             const [startYear, endYear] = f.timeRange;
-            const y = item.year; // 假设 item.year 是一个数字型年份
-            if (typeof y === 'number') {
+            let y = item.date_inscribed;
+            // 处理各种可能的年份格式
+            if (typeof y === 'string') {
+              const yearMatch = y.match(/\d{4}/);
+              if (yearMatch) {
+                y = parseInt(yearMatch[0]);
+              }
+            }
+            if (typeof y === 'number' && !isNaN(y)) {
               if (y < startYear || y > endYear) {
                 return false;
               }
