@@ -63,6 +63,20 @@ const maxYear = 2025;
 const localTimeRange = ref([minYear, maxYear]);
 const zoomRange = ref(null);
 
+
+const detailFields = [
+  'C1', 'C2', 'C3', 'C4', 'C5', 'C6',
+  'N7', 'N8', 'N9', 'N10'
+];
+
+
+const categoryLabels = {
+  'C': '文化遗产',
+  'N': '自然遗产',
+  'C/N': '混合遗产'
+};
+
+
 // 处理时间范围变化
 const handleTimeRangeChange = (newRange) => {
   // 更新timeRange
@@ -89,20 +103,61 @@ const timeIndicatorPosition = computed(() => {
   };
 });
 
+// 应用筛选条件
+const applyFilters = (items) => {
+  const f = props.filter;
+  
+  return items.filter(item => {
+    // 1. 地区筛选
+    if (Array.isArray(f.region) && f.region.length > 0) {
+      if (!f.region.includes(item.region_en)) {
+        return false;
+      }
+    }
+    
+    // 2. 类别筛选
+    if (f.category) {
+      if (item.category_short !== f.category) {
+        return false;
+      }
+    }
+    
+    // 3. 详细类别筛选
+    if (Array.isArray(f.detail_category) && f.detail_category.length === 10) {
+      for (let i = 0; i < 10; i++) {
+        if (f.detail_category[i] === 1) {
+          const fieldName = detailFields[i];
+          if (item[fieldName] !== 1) {
+            return false;
+          }
+        }
+      }
+    }
+    
+    return true;
+  });
+};
+
 // 提取年份数据并计算每年的遗产数量
 const getYearlyCounts = () => {
   const counts = {};
   
-  props.data.forEach(item => {
+  // 应用筛选条件
+  const filteredData = applyFilters(props.data);
+  
+  filteredData.forEach(item => {
+    // 处理年份数据
     let year = item.date_inscribed;
     
-    // 处理各种可能的年份格式
+    // 处理不同年份格式
     if (typeof year === 'string') {
+      // 字符串
       const yearMatch = year.match(/\d{4}/);
       if (yearMatch) {
         year = parseInt(yearMatch[0]);
       }
     }
+    // 数字
     if (typeof year === 'number' && !isNaN(year) && year >= minYear && year <= maxYear) {
       counts[year] = (counts[year] || 0) + 1;
     }
@@ -114,7 +169,6 @@ const getYearlyCounts = () => {
 // 初始化图表
 const initChart = () => {
   if (!chartRef.value) return;
-
   if (chartInstance) {
     chartInstance.dispose();
   }
@@ -126,6 +180,8 @@ const initChart = () => {
   chartInstance.on('datazoom', (params) => {
     if (params.batch && params.batch[0]) {
       const { start, end } = params.batch[0];
+      
+      // 计算实际的年份范围
       const allYears = Object.keys(getYearlyCounts()).map(Number).sort();
       const totalYears = allYears.length;
       
@@ -140,7 +196,8 @@ const initChart = () => {
       }
     }
   });
-
+  
+  // 监听图表缩放结束事件
   chartInstance.on('datazoomend', () => {
     setTimeout(() => {
       zoomRange.value = null;
@@ -178,14 +235,16 @@ const updateChart = () => {
       }
     });
   }
-
+  
+  // 图表配置
   const option = {
     tooltip: {
       trigger: 'item',
       formatter: (params) => {
         const year = params.value[0];
         const count = params.value[1];
-        return `
+        
+        let content = `
           <div style="font-weight:bold;font-size:16px;color:#5470c6;margin-bottom:5px">
             ${year}年
           </div>
@@ -194,6 +253,8 @@ const updateChart = () => {
             遗产数量: <b style="margin-left:5px;font-size:18px">${count}</b>
           </div>
         `;
+        
+        return content;
       },
       backgroundColor: 'rgba(10, 15, 35, 0.95)',
       borderColor: '#5470c6',
@@ -211,7 +272,7 @@ const updateChart = () => {
     grid: {
       left: '3%',
       right: '4%',
-      bottom: '20%', 
+      bottom: '20%', // 增加底部空间用于dataZoom
       top: '10%',
       containLabel: true
     },
@@ -221,8 +282,8 @@ const updateChart = () => {
       name: '年份',
       nameLocation: 'middle',
       nameGap: 30,
-      min: startYear, 
-      max: endYear,
+      min: startYear, // 明确设置最小值
+      max: endYear,   // 明确设置最大值
       axisLine: {
         lineStyle: {
           color: '#a0a0d0'
@@ -230,8 +291,8 @@ const updateChart = () => {
       },
       axisLabel: {
         color: '#a0a0d0',
-        interval: Math.ceil(years.length / 10), 
-        rotate: years.length > 15 ? 45 : 0 
+        interval: Math.ceil(years.length / 10), // 避免标签重叠
+        rotate: years.length > 15 ? 45 : 0 // 年份多时旋转标签
       }
     },
     yAxis: {
@@ -300,7 +361,7 @@ const updateChart = () => {
         }
       }
     ],
-
+    // 数据缩放功能
     dataZoom: [
       {
         type: 'inside',
@@ -322,7 +383,7 @@ const updateChart = () => {
         borderColor: 'transparent',
         fillerColor: 'rgba(80, 120, 255, 0.3)',
         brushSelect: false,
-        showDetail: true, 
+        showDetail: true, // 显示缩放过程中的详情
         handleStyle: {
           color: '#5470c6',
           borderColor: '#fff',
@@ -335,8 +396,8 @@ const updateChart = () => {
     ]
   };
   
-  chartInstance.setOption(option, true); 
-  chartInstance.resize(); 
+  chartInstance.setOption(option, true); // 使用true参数强制重新渲染
+  chartInstance.resize(); // 确保图表正确调整大小
 };
 
 // 监听数据变化
@@ -362,29 +423,41 @@ watch(() => props.filter.time, () => {
 // 监听filter.timeRange变化
 watch(() => props.filter.timeRange, (newRange) => {
   if (newRange && newRange.length === 2) {
+    // 确保新范围有效
     const validStart = Math.max(minYear, newRange[0]);
     const validEnd = Math.min(maxYear, newRange[1]);
     
+    // 只有当范围确实变化时才更新
     if (validStart !== localTimeRange.value[0] || validEnd !== localTimeRange.value[1]) {
       localTimeRange.value = [validStart, validEnd];
-      nextTick(() => {
-        if (chartInstance) {
-          updateChart();
-        }
-      });
+      nextTick(updateChart);
     }
+  }
+}, { deep: true });
+
+// 监听其他筛选条件变化
+watch(() => [
+  props.filter.region,
+  props.filter.category,
+  props.filter.detail_category
+], () => {
+  if (chartInstance) {
+    updateChart();
   }
 }, { deep: true });
 
 // 组件挂载时初始化
 onMounted(() => {
+  // 如果filter中有初始时间范围，则使用它
   if (props.filter.timeRange && props.filter.timeRange.length === 2) {
     localTimeRange.value = [...props.filter.timeRange];
   }
   
+  // 确保DOM完全渲染后初始化图表
   nextTick(() => {
     initChart();
-
+    
+    // 添加窗口大小变化监听
     window.addEventListener('resize', () => {
       if (chartInstance) {
         chartInstance.resize();
@@ -469,6 +542,29 @@ onMounted(() => {
   z-index: 10;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
   animation: fadeIn 0.3s;
+}
+
+.filter-hint {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 10;
+}
+
+.filter-hint .el-tag {
+  font-weight: bold;
+  padding: 6px 12px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  background: rgba(235, 158, 52, 0.9);
+  border-color: #ffb347;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @keyframes fadeIn {
