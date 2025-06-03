@@ -195,7 +195,7 @@ export default {
 
           // ——————————————————————————————
           // 如果都没被排除，就保留该条数据
-          console.log('保留数据:', item.name_en, item.id_no);
+          /*console.log('保留数据:', item.name_en, item.id_no);*/
           return true;
         })
         .map(dataItem => {

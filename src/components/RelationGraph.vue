@@ -21,70 +21,79 @@ export default {
     const chartContainer = ref(null);
     const myChart = ref(null);  
     const nodeOrder = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'N7', 'N8', 'N9', 'N10'];
-    const whcData = ref({});
-    const filteredData = ref({ nodes: [], links: [], categories: [] });
+    const index = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'N7', 'N8', 'N9', 'N10']
+    var relationMat = Array(10).fill().map(() => Array(10).fill(0));
+    var csvData = ''
+    var graphData = {}
 
-    // 初始化图表
-    function init() {
-      getData();
-    }
-
-    // 获取原始数据
-    function getData() {
-      console.log('getData')
+    function generateData(){
+      console.log('generateData')
+      
+      csvData = ''
+      graphData = ''
+      relationMat = Array(10).fill().map(() => Array(10).fill(0));
       const ROOT_PATH = '/';
-      fetch(ROOT_PATH + 'whc.json')
-        .then((response) => response.json())
+      fetch(ROOT_PATH + 'data/whc.csv')
+        .then((response) => response.text())
         .then((rawData) => {
-          whcData.value = rawData;
-          applyFilter(); // 获取数据后立即应用筛选
+          csvData = rawData;
+          console.log('csvData')
+          /*console.log(csvData)*/
+          const rows = csvData.split('\n');
+          rows.forEach(row => {
+            const dataArr = row.split(',');
+            const shouldInclude = props.filter.detail_category.every(
+              (filterVal, idx) => filterVal !== 1 || dataArr[idx+1] === '1'
+            );
+            if (shouldInclude) {
+              for (let i = 1; i <= 10; i++) {
+                if (dataArr[i] === '1') {
+                  relationMat[i-1][i-1] += 1;
+                }
+                for (let j = i + 1; j <= 10; j++) {
+                  if (dataArr[i] === '1' && dataArr[j] === '1') {
+                    relationMat[i-1][j-1] += 1;
+                    relationMat[j-1][i-1] += 1;
+                  }
+                }
+            }
+            }
+          });
+          console.log(relationMat)
+        
+          graphData = {
+            nodes: index.map((id, i) => ({
+              id: id,
+              category: i,
+              symbolSize: relationMat[i][i] / 50,
+              name: id
+            })),
+            links: generateLinks(),
+            categories: index.map(name => ({
+              name: name === 'N10' ? 'N10' : name
+            }))
+          };
+          console.log('graphData')
+          console.log(graphData)
+          initChart();
         });
     }
 
-    // 根据筛选条件过滤数据
-    function applyFilter() {
-      console.log('applyFilter')
-      if (!props.filter?.detail_category || !whcData.value.nodes) return;
-
-      // 获取选中的节点名称
-      const selectedNodes = props.filter.detail_category
-        .map((val, index) => val === 1 ? nodeOrder[index] : null)
-        .filter(Boolean);
-
-      // 如果没有选中任何节点，则显示全部数据
-      if (selectedNodes.length === 0) {
-        filteredData.value = {
-          nodes: [...whcData.value.nodes],
-          links: [...whcData.value.links],
-          categories: [...whcData.value.categories]
-        };
-        initChart();
-        return;
+    function generateLinks() {
+      const links = [];
+      for (let i = 0; i < 10; i++) {
+        for (let j = i + 1; j < 10; j++) {
+          links.push({
+            source: index[i],
+            target: index[j],
+            value: relationMat[i][j] + 1,
+            lineStyle: {
+              width: relationMat[i][j] / 100 + 1
+            }
+          });
+        }
       }
-
-      // 筛选节点
-      const filteredNodes = whcData.value.nodes.filter(node => 
-        selectedNodes.includes(node.name)
-      );
-
-      // 筛选边 - 只保留两端都在选中节点中的边
-      const filteredLinks = whcData.value.links.filter(link => 
-        selectedNodes.includes(link.source) && 
-        selectedNodes.includes(link.target)
-      );
-
-      // 筛选类别
-      const filteredCategories = whcData.value.categories.filter(cat => 
-        selectedNodes.some(node => node.startsWith(cat.name.replace(/[0-9]/g, '')))
-      );
-
-      filteredData.value = {
-        nodes: filteredNodes,
-        links: filteredLinks,
-        categories: filteredCategories
-      };
-
-      initChart();
+      return links;
     }
 
     // 初始化或更新图表
@@ -94,15 +103,12 @@ export default {
         myChart.value = echarts.init(chartContainer.value);
         setupChartEvents();
       }
-      
       updateChart();
     }
-
     // 更新图表选项
     function updateChart() {
       console.log('updateChart')
       myChart.value.showLoading();
-      
       const option = {
         tooltip: {
           padding: 12,
@@ -133,9 +139,9 @@ export default {
               layoutAnimation: true
             },
             draggable: true,
-            data: filteredData.value.nodes,
-            links: filteredData.value.links,
-            categories: filteredData.value.categories,
+            data: graphData.nodes,
+            links: graphData.links,
+            categories: graphData.categories,
             roam: true,
             label: {
               show: true,
@@ -181,7 +187,6 @@ export default {
           }
         ]
       };
-
       myChart.value.setOption(option, true);
       myChart.value.hideLoading();
       myChart.value.resize();
@@ -211,19 +216,21 @@ export default {
     const clearSelection = () => {
       const newFilter = {
         ...props.filter,
-        detail_category: Array(nodeOrder.length).fill(0)
+        detail_category: []
       };
       emit('update:filter', newFilter);
     };
 
     // 监听筛选条件变化
-    watch(() => props.filter?.detail_category, () => {
-      applyFilter();
+    watch(() => props.filter.detail_category, () => {
+      console.log('props.filter.detail_category')
+      console.log(props.filter.detail_category)
+      generateData()
     }, { deep: true });
 
     // 组件挂载时初始化
     onMounted(() => {
-      init();
+      generateData();
       window.addEventListener('resize', () => {
         myChart.value?.resize();
       });
