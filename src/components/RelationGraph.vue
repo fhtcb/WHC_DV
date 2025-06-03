@@ -34,7 +34,7 @@ export default {
   props.data.forEach(item => {
     // 检查region筛选
     const regionMatch = props.filter.region.length === 0 || 
-                      (item.region_en && props.filter.region.some(r => item.region_en.includes(r)));
+                      (item.region_en && props.filter.region[0] === item.region_en);
     
     // 检查category筛选
     const categoryMatch = !props.filter.category || 
@@ -239,7 +239,7 @@ export default {
 
     // 监听筛选条件变化
     watch(() => props.filter, () => {
-      console.log('props.filter changed')
+      console.log('props.filter changed',props.filter)
       generateData()
     }, { deep: true });
 
