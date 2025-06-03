@@ -14,83 +14,98 @@ export default {
   props: {
     filter: Object,
     dangerMode: Boolean,
-    data: Object
+    data: Array
   },
   emits: ['update:filter'],
   setup(props, { emit }) {
     const chartContainer = ref(null);
     const myChart = ref(null);  
-    const nodeOrder = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'N7', 'N8', 'N9', 'N10'];
     const index = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'N7', 'N8', 'N9', 'N10']
     var relationMat = Array(10).fill().map(() => Array(10).fill(0));
-    var csvData = ''
     var graphData = {}
 
     function generateData(){
-      console.log('generateData')
+  console.log('generateData from props.data')
+  
+  // 重置关系矩阵
+  relationMat = Array(10).fill().map(() => Array(10).fill(0));
+  
+  // 处理props.data中的每条数据
+  props.data.forEach(item => {
+    // 检查region筛选
+    const regionMatch = props.filter.region.length === 0 || 
+                      (item.region_en && props.filter.region.some(r => item.region_en.includes(r)));
+    
+    // 检查category筛选
+    const categoryMatch = !props.filter.category || 
+                        item.category_short === props.filter.category;
+    
+    // 检查timeRange筛选
+    let timeMatch = true;
+    if (props.filter.timeRange && props.filter.timeRange.length === 2) {
+      const [startYear, endYear] = props.filter.timeRange;
+      const inscribedYear = parseInt(item.date_inscribed) || 0;
       
-      csvData = ''
-      graphData = ''
-      relationMat = Array(10).fill().map(() => Array(10).fill(0));
-      const ROOT_PATH = '/';
-      fetch(ROOT_PATH + 'data/whc.csv')
-        .then((response) => response.text())
-        .then((rawData) => {
-          csvData = rawData;
-          console.log('csvData')
-          /*console.log(csvData)*/
-          const rows = csvData.split('\n');
-          rows.forEach(row => {
-            const dataArr = row.split(',');
-            const shouldInclude = props.filter.detail_category.every(
-              (filterVal, idx) => filterVal !== 1 || dataArr[idx+1] === '1'
-            );
-            if (shouldInclude) {
-              for (let i = 1; i <= 10; i++) {
-                if (dataArr[i] === '1') {
-                  relationMat[i-1][i-1] += 1;
-                }
-                for (let j = i + 1; j <= 10; j++) {
-                  if (dataArr[i] === '1' && dataArr[j] === '1') {
-                    relationMat[i-1][j-1] += 1;
-                    relationMat[j-1][i-1] += 1;
-                  }
-                }
-            }
-            }
-          });
-          console.log(relationMat)
-        
-          graphData = {
-            nodes: index.map((id, i) => ({
-              id: id,
-              category: i,
-              symbolSize: relationMat[i][i] / 50,
-              name: id
-            })),
-            links: generateLinks(),
-            categories: index.map(name => ({
-              name: name === 'N10' ? 'N10' : name
-            }))
-          };
-          console.log('graphData')
-          console.log(graphData)
-          initChart();
-        });
+      // 检查主要日期是否在范围内
+      const mainDateInRange = inscribedYear >= startYear && inscribedYear <= endYear;
+      
+      timeMatch = mainDateInRange;
     }
+    
+    // 检查detail_category筛选
+    const detailCategoryMatch = props.filter.detail_category.every(
+      (filterVal, idx) => filterVal !== 1 || item[index[idx]] === 1
+    );
+    
+    // 所有筛选条件都满足才计入统计
+    if (regionMatch && categoryMatch && timeMatch && detailCategoryMatch) {
+      for (let i = 0; i < 10; i++) {
+        if (item[index[i]] === 1) {
+          relationMat[i][i] += 1;  // 节点自身出现次数
+          for (let j = i + 1; j < 10; j++) {
+            if (item[index[j]] === 1) {
+              relationMat[i][j] += 1;  // 共同出现次数
+              relationMat[j][i] += 1;
+            }
+          }
+        }
+      }
+    }
+  });
+  
+  console.log('relationMat', relationMat)
+  
+  graphData = {
+    nodes: index.map((id, i) => ({
+      id: id,
+      category: i,
+      symbolSize: relationMat[i][i] / 50,
+      name: id
+    })),
+    links: generateLinks(),
+    categories: index.map(name => ({
+      name: name === 'N10' ? 'N10' : name
+    }))
+  };
+  
+  console.log('graphData', graphData)
+  initChart();
+}
 
     function generateLinks() {
       const links = [];
       for (let i = 0; i < 10; i++) {
         for (let j = i + 1; j < 10; j++) {
-          links.push({
-            source: index[i],
-            target: index[j],
-            value: relationMat[i][j] + 1,
-            lineStyle: {
-              width: relationMat[i][j] / 100 + 1
-            }
-          });
+          if (relationMat[i][j] > 0) {  // 只添加有共同出现的链接
+            links.push({
+              source: index[i],
+              target: index[j],
+              value: relationMat[i][j] + 1,
+              lineStyle: {
+                width: relationMat[i][j] / 100 + 1
+              }
+            });
+          }
         }
       }
       return links;
@@ -105,6 +120,7 @@ export default {
       }
       updateChart();
     }
+    
     // 更新图表选项
     function updateChart() {
       console.log('updateChart')
@@ -121,7 +137,7 @@ export default {
                      `出现次数: ${params.data.symbolSize*50}<br/>`;
             } else if (params.dataType === 'edge') {
               return `共同出现: ${params.data.source} - ${params.data.target}<br/>` +
-                     `共同出现次数: ${params.data.value || 1}`;
+                     `共同出现次数: ${params.data.value - 1}`;  // 减去之前加的1
             }
           }
         },
@@ -198,7 +214,7 @@ export default {
         if (!params || params.dataType !== 'node') return;
 
         const nodeName = params.data.name;
-        const nodeIndex = nodeOrder.indexOf(nodeName);
+        const nodeIndex = index.indexOf(nodeName);
         
         if (nodeIndex === -1) return;
         
@@ -216,15 +232,20 @@ export default {
     const clearSelection = () => {
       const newFilter = {
         ...props.filter,
-        detail_category: []
+        detail_category: Array(10).fill(0)  // 重置为全0数组
       };
       emit('update:filter', newFilter);
     };
 
     // 监听筛选条件变化
-    watch(() => props.filter.detail_category, () => {
-      console.log('props.filter.detail_category')
-      console.log(props.filter.detail_category)
+    watch(() => props.filter, () => {
+      console.log('props.filter changed')
+      generateData()
+    }, { deep: true });
+
+    // 监听数据变化
+    watch(() => props.data, () => {
+      console.log('props.data changed')
       generateData()
     }, { deep: true });
 
