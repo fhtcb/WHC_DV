@@ -7,8 +7,11 @@
       <el-tag v-if="currentFilter.region" type="success" closable @close="clearRegionFilter">
         地区: {{ currentFilter.region }}
       </el-tag>
-      <el-tag v-if="currentFilter.category" type="info" closable @close="clearCategoryFilter">
+      <el-tag v-if="currentFilter.category && !props.dangerMode" type="info" closable @close="clearCategoryFilter">
         类别: {{ categoryLabels[currentFilter.category] }}
+      </el-tag>
+      <el-tag v-if="props.dangerMode" :type="currentFilter.category === 'danger' ? 'danger' : 'info'" closable @close="clearCategoryFilter">
+        {{ currentFilter.category === 'danger' ? '濒危遗产' : '非濒危遗产' }}
       </el-tag>
     </div>
   </div>
@@ -26,6 +29,10 @@ const props = defineProps({
   filter: {
     type: Object,
     default: () => ({})
+  },
+  dangerMode: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -120,7 +127,7 @@ const regionData = computed(() => {
     if (regionIndex === -1) return;
     
     // 标准模式：按类别计数
-    if (!props.filter.dangerMode) {
+    if (!props.dangerMode) {
       switch(item.category_short) {
         case 'C':
           result.cultural[regionIndex]++;
@@ -188,7 +195,15 @@ const initChart = () => {
 
 // 更新图表
 const updateChart = () => {
-  if (!chartInstance || !regionData.value) return;
+  if (!chartInstance) return;
+  
+  // 如果没有筛选条件，取消所有高亮
+  if (!currentFilter.value.region && !currentFilter.value.category) {
+    chartInstance.dispatchAction({
+      type: 'downplay',
+      seriesIndex: props.dangerMode ? [0, 1] : [0, 1, 2]
+    });
+  }
   
   // 高亮状态
   const highlightSeriesIndex = currentFilter.value.category 
@@ -206,7 +221,7 @@ const updateChart = () => {
     : null;
   
   // 根据模式确定图表配置
-  const option = props.filter.dangerMode ? getDangerModeOption() : getStandardModeOption();
+  const option = props.dangerMode ? getDangerModeOption() : getStandardModeOption();
   
   // 应用配置
   chartInstance.setOption(option, true);
@@ -343,11 +358,11 @@ const getStandardModeOption = () => {
           focus: 'series',
           itemStyle: {
             shadowBlur: 10,
-            shadowColor: 'rgba(84, 112, 198, 0.8)'
+            shadowColor: 'rgba(250, 200, 88, 0.8)'
           }
         },
         itemStyle: {
-          color: '#5470c6',
+          color: '#fac858',
           borderRadius: [3, 3, 0, 0]
         },
         data: regionData.value.cultural
@@ -377,11 +392,11 @@ const getStandardModeOption = () => {
           focus: 'series',
           itemStyle: {
             shadowBlur: 10,
-            shadowColor: 'rgba(250, 200, 88, 0.8)'
+            shadowColor: 'rgba(84, 112, 198, 0.8)'
           }
         },
         itemStyle: {
-          color: '#fac858',
+          color: '#66ccff',
           borderRadius: [3, 3, 0, 0]
         },
         data: regionData.value.mixed
@@ -548,7 +563,7 @@ const handleChartClick = (params) => {
     const region = regions[params.dataIndex];
     
     // 在危险模式下，仅设置地区筛选
-    if (props.filter.dangerMode) {
+    if (props.dangerMode) {
       // 如果点击的是已选中的地区，则取消选择
       if (currentFilter.value.region === region) {
         currentFilter.value.region = null;
@@ -600,7 +615,7 @@ const handleMouseOver = (params) => {
     // 高亮整个柱子
     chartInstance.dispatchAction({
       type: 'highlight',
-      seriesIndex: props.filter.dangerMode ? [0, 1] : [0, 1, 2],
+      seriesIndex: props.dangerMode ? [0, 1] : [0, 1, 2],
       dataIndex: params.dataIndex
     });
   } else if (params.componentType === 'series') {
@@ -614,7 +629,7 @@ const handleMouseOut = (params) => {
     // 取消高亮
     chartInstance.dispatchAction({
       type: 'downplay',
-      seriesIndex: props.filter.dangerMode ? [0, 1] : [0, 1, 2],
+      seriesIndex: props.dangerMode ? [0, 1] : [0, 1, 2],
       dataIndex: params.dataIndex
     });
   }
@@ -655,12 +670,20 @@ watch(() => props.filter, (newFilter) => {
   currentFilter.value.region = newFilter.region.length > 0 ? newFilter.region[0] : null;
   currentFilter.value.category = newFilter.category || null;
   
+  // 如果筛选条件被清空，确保取消高亮
+  if (!newFilter.region.length && !newFilter.category && chartInstance) {
+    chartInstance.dispatchAction({
+      type: 'downplay',
+      seriesIndex: props.dangerMode ? [0, 1] : [0, 1, 2]
+    });
+  }
+  
   // 更新图表高亮
   updateChart();
 }, { deep: true });
 
 // 监听危险模式变化
-watch(() => props.filter.dangerMode, () => {
+watch(() => props.dangerMode, () => {
   // 当模式切换时，重置类别筛选
   currentFilter.value.category = null;
   

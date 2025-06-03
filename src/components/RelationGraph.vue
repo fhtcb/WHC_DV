@@ -75,16 +75,46 @@ export default {
   
   console.log('relationMat', relationMat)
   
+  // 找出非零节点的最大出现次数，用于计算相对大小
+  const maxCount = Math.max(...relationMat.map(row => row[row.indexOf(Math.max(...row))]));
+  
+  // 过滤掉数量为0的节点
+  const validNodes = index.map((id, i) => ({
+    id: id,
+    category: index.indexOf(id),  // 使用节点在 index 数组中的位置作为类别
+    symbolSize: relationMat[i][i] > 0 ? 20 + (relationMat[i][i] / maxCount) * 30 : 0,
+    name: id,
+    value: relationMat[i][i]  // 添加原始值用于显示
+  })).filter(node => node.symbolSize > 0);
+  
+  // 生成有效节点之间的连接
+  const validLinks = [];
+  for (let i = 0; i < 10; i++) {
+    if (relationMat[i][i] === 0) continue;  // 跳过数量为0的节点
+    for (let j = i + 1; j < 10; j++) {
+      if (relationMat[j][j] === 0) continue;  // 跳过数量为0的节点
+      if (relationMat[i][j] > 0) {
+        validLinks.push({
+          source: index[i],
+          target: index[j],
+          value: relationMat[i][j],
+          lineStyle: {
+            width: 2 + (relationMat[i][j] / maxCount) * 8,
+            opacity: 0.6 + (relationMat[i][j] / maxCount) * 0.4,
+            curveness: 0.1,
+            shadowColor: 'rgba(0, 0, 0, 0.3)',
+            shadowBlur: 2
+          }
+        });
+      }
+    }
+  }
+  
   graphData = {
-    nodes: index.map((id, i) => ({
-      id: id,
-      category: i,
-      symbolSize: relationMat[i][i] / 50,
+    nodes: validNodes,
+    links: validLinks,
+    categories: index.map((id, i) => ({
       name: id
-    })),
-    links: generateLinks(),
-    categories: index.map(name => ({
-      name: name === 'N10' ? 'N10' : name
     }))
   };
   
@@ -133,15 +163,39 @@ export default {
           },
           formatter: function(params) {
             if (params.dataType === 'node') {
-              return `类别: ${params.data.name}<br/>` + 
-                     `出现次数: ${params.data.symbolSize*50}<br/>`;
+              return `<div style="font-weight:bold;color:#5470c6;font-size:16px;margin-bottom:8px;">
+                        ${params.data.name}类别
+                      </div>
+                      <div style="display:flex;justify-content:space-between;margin:5px 0;">
+                        <span>出现次数:</span>
+                        <span style="font-weight:bold;color:#91cc75;">${params.data.value}</span>
+                      </div>`;
             } else if (params.dataType === 'edge') {
-              return `共同出现: ${params.data.source} - ${params.data.target}<br/>` +
-                     `共同出现次数: ${params.data.value - 1}`;  // 减去之前加的1
+              return `<div style="font-weight:bold;color:#5470c6;font-size:16px;margin-bottom:8px;">
+                        共同出现关系
+                      </div>
+                      <div style="margin:5px 0;">
+                        ${params.data.source} ↔ ${params.data.target}
+                      </div>
+                      <div style="display:flex;justify-content:space-between;margin:5px 0;">
+                        <span>共同出现次数:</span>
+                        <span style="font-weight:bold;color:#91cc75;">${params.data.value}</span>
+                      </div>`;
             }
           }
         },
-        legend: [],
+        color: [
+          '#5470c6',  // 蓝色
+          '#91cc75',  // 绿色
+          '#fac858',  // 黄色
+          '#ee6666',  // 红色
+          '#73c0de',  // 浅蓝
+          '#3ba272',  // 深绿
+          '#fc8452',  // 橙色
+          '#9a60b4',  // 紫色
+          '#ea7ccc',  // 粉色
+          '#c23531'   // 深红
+        ],
         series: [
           {
             name: '',
@@ -174,22 +228,30 @@ export default {
             },
             lineStyle: {
               color: 'source',
-              curveness: 0
+              curveness: 0.1,
+              opacity: 0.6,
+              shadowBlur: 2
             },
             emphasis: {
-              focus: 'self',
+              focus: 'adjacency',
+              scale: true,
               itemStyle: {
-                color: '#FF6B6B',
-                borderWidth: 2,
-                borderColor: '#333',
+                borderWidth: 3,
+                borderColor: '#fff',
                 shadowBlur: 10,
-                shadowColor: 'rgba(0, 0, 0, 0.5)'
+                shadowColor: 'rgba(255, 255, 255, 0.5)'
               },
               label: {
                 show: true,
                 fontWeight: 'bold',
                 fontSize: 16,
                 formatter: '{b}'
+              },
+              lineStyle: {
+                width: 4,
+                opacity: 1,
+                shadowBlur: 4,
+                shadowColor: 'rgba(255, 255, 255, 0.5)'
               }
             },
             blur: {

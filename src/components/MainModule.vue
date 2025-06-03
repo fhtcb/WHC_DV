@@ -1,8 +1,5 @@
 <template>
   <div id="mainchart" style="width: 100%; height: 100%;"></div>
-  <el-dialog v-model="dialogVisible" title="Description" width="40%">
-    <div v-html="dialogContent"></div>
-  </el-dialog>
 </template>
 
 <script>
@@ -26,11 +23,8 @@ export default {
   ],
   data() {
     return {
-
       chartData: [],
       maxRadius: 0,
-      dialogVisible: false,
-      dialogContent: '',
       selectedIndex: -1,
       sel_idx: -1
     };
@@ -56,7 +50,13 @@ export default {
       this.maxRadius = data.reduce((max, item) => Math.max(max, item[3] || 0), 0);
       if (this.chart) {
         this.chart.setOption({
-          series: [{ data: this.chartData }],
+          series: [{ 
+            data: this.chartData,
+            symbolSize: 2,  // 确保基础大小不为0
+            itemStyle: {
+              opacity: 1  // 确保点始终可见
+            }
+          }],
           visualMap: { max: this.maxRadius }
         });
       }
@@ -87,11 +87,17 @@ export default {
         this.prepareChartData();
         console.log('Filter changed:', newF);
         console.log('Prepared chart data:', this.chartData);
-        this.chart.setOption({
-          series: [{
-            data: this.chartData
-          }]
-        });
+        if (this.chart) {
+          this.chart.setOption({
+            series: [{
+              data: this.chartData,
+              symbolSize: 2,  // 确保基础大小不为0
+              itemStyle: {
+                opacity: 1  // 确保点始终可见
+              }
+            }]
+          });
+        }
       },
       deep: true
     }
@@ -105,9 +111,9 @@ export default {
             : 'rgba(128,128,128,0.7)'; // 非危险点
       } else {
         const colorMap = {
-          'C': 'rgba(0, 0, 255, 0.3)',
-          'N': 'rgba(0, 255, 0, 0.3)',
-          'C/N': 'rgba(0, 255, 255, 0.3)'
+          'C': 'rgba(250,200,88, 0.3)',
+          'N': 'rgba(145,204,117, 0.3)',
+          'C/N': 'rgba(102, 204, 255,0.3)'
         };
         return (params) =>
           colorMap[params.value[4]];
@@ -128,7 +134,6 @@ export default {
           // ——————————————————————————————
           // 2. 按 region（地区）多选筛选
           if (Array.isArray(f.region) && f.region.length > 0) {
-
             if (!f.region.includes(item.region_en)) {
               return false;
             }
@@ -146,22 +151,25 @@ export default {
           // ——————————————————————————————
           // 4. 按 detail_category（细分类）筛选
           if (Array.isArray(f.detail_category) && f.detail_category.length === 10) {
-            // 遍历 10 个索引，只要 f.detail_category[i] === 1，
-            // 就要求 item[对应字段] 也必须 === 1，否则排除
+            let hasSelectedCategory = false;
+            let matchesSelected = true;
+            
             for (let i = 0; i < 10; i++) {
               if (f.detail_category[i] === 1) {
-                const fieldName = detailFields[i]; // e.g. 'C3', 'N9'
-                console.log('筛选 detail_category:', fieldName, item[fieldName]);
-                // 如果 item 对应字段不是 1，就说明不满足筛选要求：
+                hasSelectedCategory = true;
+                const fieldName = detailFields[i];
                 if (item[fieldName] !== 1) {
-                  return false;
+                  matchesSelected = false;
+                  break;
                 }
               }
             }
+            
+            if (hasSelectedCategory && !matchesSelected) {
+              return false;
+            }
           }
           
-          // 如果 f.detail_category.length === 0，就跳过此段逻辑，相当于"全选"
-
           // ——————————————————————————————
           // 5. 按 timeRange（时间区间）筛选
           if (Array.isArray(f.timeRange) && f.timeRange.length === 2) {
@@ -184,18 +192,7 @@ export default {
           }
 
           // ——————————————————————————————
-          // 6. 按 time（精确时间点）筛选
-          if (f.time) {
-            // 假设 item.time 也是一个可字符串化的时间字段
-            if (String(item.time) !== String(f.time)) {
-              return false;
-            }
-          }
-
-
-          // ——————————————————————————————
           // 如果都没被排除，就保留该条数据
-          /*console.log('保留数据:', item.name_en, item.id_no);*/
           return true;
         })
         .map(dataItem => {
@@ -306,22 +303,24 @@ export default {
           type: 'scatter3D',
           coordinateSystem: 'globe',
           blendMode: 'lighter',
-          symbolSize: 2,
+          symbolSize: function(data) {
+            return Math.max(2, data[3] / 50); // 确保最小尺寸为2
+          },
           itemStyle: {
             color: (params) => {
               // 根据 category_short 动态设置颜色
               const category = params.value[4]; // category_short 的值
               switch (category) {
                 case 'C':
-                  return 'rgba(255, 255, 0, 0.3)'; // Cultural
+                  return 'rgba(250,200,88, 0.3)'; // Cultural
                 case 'N':
-                  return 'rgba(0, 255, 0, 0.3)'; // Natural
+                  return 'rgba(145,204,117, 0.3)'; // Natural
                 case 'C/N':
                   return 'rgba(102, 204, 255,0.3)'; // C/N
               }
 
             },
-            opacity: 0.6
+            opacity: 1
           },
           emphasis: {
               label: {
@@ -339,13 +338,6 @@ export default {
 
       this.chart.on('click', (params) => {
         console.log('Clicked on:', params.value[4]);
-        if (params.value && params.value[7]) {
-          this.dialogContent = params.value[7];
-          this.dialogVisible = true;
-        } else {
-          this.dialogContent = 'No description.';
-          this.dialogVisible = true;
-        }
         const clickedId = params.value[9];
         const iidx = this.chartData.findIndex(arr => arr[9] === clickedId);
         if (iidx === -1) return; // 找不到直接退出
@@ -364,7 +356,7 @@ export default {
             id_no: '',
             region: [],
             category: '',
-            detail_category: [],
+            detail_category: Array(10).fill(0),
             timeRange: [],
             time: ''
           };
@@ -391,7 +383,6 @@ export default {
       const clickedItem = this.data.find(d => d.id_no === clickedId);
       if (!clickedItem) return;
 
-      const f = toRaw(this.filter);
       const newFilter = {
         id_no: clickedItem.id_no,                  
         region: [clickedItem.region_en],             
@@ -408,8 +399,8 @@ export default {
           clickedItem.N9,
           clickedItem.N10
         ],
-        timeRange: f.timeRange,
-        time: f.time
+        timeRange: this.filter.timeRange,
+        time: clickedItem.date_inscribed
       };
       this.$emit('update:filter', newFilter);
       });
