@@ -97,6 +97,13 @@ const regionData = computed(() => {
   
   // 统计每个地区的遗产类别数量（应用筛选条件）
   props.data.forEach(item => {
+    // 添加国家筛选
+    if (f.states_name_en) {
+      if (item.states_name_en !== f.states_name_en) {
+        return;
+      }
+    }
+    
     // 1. 检查时间范围筛选
     if (Array.isArray(f.timeRange) && f.timeRange.length === 2) {
       const [startYear, endYear] = f.timeRange;
@@ -708,36 +715,61 @@ onMounted(() => {
 
 <style scoped>
 .region-bar-container {
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  padding: 10px;
   position: relative;
-  background: rgba(15, 20, 40, 0.7);
-  border-radius: 8px;
+  overflow: hidden;
 }
 
 .chart-container {
   flex: 1;
+  min-height: 0;
   width: 100%;
-  min-height: 250px;
+  position: relative;
+  padding-bottom: 40px;
 }
 
 .filter-status {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
-  gap: 10px;
-  padding: 10px;
-  justify-content: center;
   flex-wrap: wrap;
+  gap: 8px;
   z-index: 10;
+  max-height: 30%;
+  overflow-y: auto;
 }
 
 .filter-status .el-tag {
-  cursor: pointer;
-  font-weight: bold;
-  padding: 6px 12px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  margin: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 自定义滚动条样式 */
+.filter-status::-webkit-scrollbar {
+  width: 6px;
+}
+
+.filter-status::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.filter-status::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.filter-status::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .mode-indicator {

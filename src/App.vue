@@ -13,7 +13,7 @@
     </div>
     <div class="area right-panel">
       <el-card shadow="hover" class="area-card">
-        <Discription :data="mainData" :filter="filter" />
+        <Discription :data="mainData" v-model:filter="filter" />
       </el-card>
     </div>
     <div class="area small left">
@@ -47,6 +47,7 @@ const filter = ref({//筛选器，会更改其他组件内容
     detail_category: Array(10).fill(0),//数组，C1~N10，1为有，0为无。长度固定为10，对应C1-C6和N7-N10
     timeRange: [],//数组，包括起始时间与终止时间
     time: '',//时间点，只与主图和时间轴有关
+    states_name_en: '', // 添加国家筛选字段
 })
 
 onMounted(async () => {
@@ -99,11 +100,47 @@ html, body, #app {
   justify-content: flex-start;
   position: relative;
   box-shadow: 0 2px 12px 0 rgba(255, 255, 255, 0.5);
+  overflow: hidden;
 }
 
 ::v-deep(.el-card__body) {
   height: 100%;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 确保所有子组件都能完全填充容器 */
+::v-deep(.time-axis-container),
+::v-deep(#mainchart),
+::v-deep(.time-chart) {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 确保图表容器能够完全填充 */
+::v-deep(.echarts-container) {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+}
+
+/* 确保滑块容器正确显示 */
+::v-deep(.slider-container) {
+  width: 100%;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+/* 确保所有区域都能正确填充 */
+.area {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .area.big-side.left { grid-area: bigsideleft; }

@@ -108,6 +108,13 @@ const applyFilters = (items) => {
   const f = props.filter;
   
   return items.filter(item => {
+    // 添加国家筛选
+    if (f.states_name_en) {
+      if (item.states_name_en !== f.states_name_en) {
+        return false;
+      }
+    }
+
     // 1. 地区筛选
     if (Array.isArray(f.region) && f.region.length > 0) {
       if (!f.region.includes(item.region_en)) {

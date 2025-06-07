@@ -29,7 +29,19 @@
           </div>
           <div class="info-item">
             <span class="label">所属国家：</span>
-            <span class="value">{{ selectedSite.states_name_en }}</span>
+            <span class="value clickable" @click="filterByCountry">
+              {{ selectedSite.states_name_en }}
+              <el-tag 
+                v-if="props.filter.states_name_en" 
+                size="small" 
+                type="info" 
+                class="ml-2" 
+                closable 
+                @close="clearCountryFilter"
+              >
+                已筛选
+              </el-tag>
+            </span>
           </div>
         </div>
       </div>
@@ -74,20 +86,14 @@ const props = defineProps({
   }
 });
 
+const emit = defineEmits(['update:filter']);
+
 // 计算选中的遗产
 const selectedSite = computed(() => {
-  console.log('Computing selectedSite:', {
-    id: props.filter?.id_no,
-    dataLength: props.data?.length
-  });
-  
   if (!props.filter?.id_no || !props.data?.length) {
     return null;
   }
-  
-  const site = props.data.find(site => site.id_no === props.filter.id_no);
-  console.log('Found site:', site?.name_en);
-  return site || null;
+  return props.data.find(site => site.id_no === props.filter.id_no) || null;
 });
 
 // 格式化面积
@@ -161,6 +167,46 @@ const formatText = (text) => {
     .filter(para => para.trim())        // 移除空段落
     .map(para => `<p>${para.trim()}</p>`) // 为每个段落添加p标签
     .join('');                          // 合并所有段落
+};
+
+// 添加按国家筛选的功能
+const filterByCountry = () => {
+  if (!selectedSite.value) return;
+  
+  // 获取当前选中的国家
+  const country = selectedSite.value.states_name_en;
+  
+  // 创建新的筛选条件，保留当前选中的遗产地，清空其他筛选
+  const newFilter = {
+    id_no: props.filter.id_no, // 保留当前选中的遗产地
+    region: [],
+    category: '',
+    detail_category: Array(10).fill(0),
+    timeRange: [],
+    time: '',
+    states_name_en: country
+  };
+  
+  // 发出更新事件
+  emit('update:filter', newFilter);
+};
+
+// 清除国家筛选
+const clearCountryFilter = (event) => {
+  if (event) {
+    event.stopPropagation(); // 阻止事件冒泡
+  }
+  // 创建新的筛选条件，保留当前选中的遗产地，清空其他筛选
+  const newFilter = {
+    id_no: props.filter.id_no, // 保留当前选中的遗产地
+    region: [],
+    category: '',
+    detail_category: Array(10).fill(0),
+    timeRange: [],
+    time: '',
+    states_name_en: ''
+  };
+  emit('update:filter', newFilter);
 };
 
 </script>
@@ -284,5 +330,33 @@ const formatText = (text) => {
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
+}
+
+.clickable {
+  color: #409EFF;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.clickable:hover {
+  color: #66b1ff;
+}
+
+.ml-2 {
+  margin-left: 8px;
+}
+
+/* 确保标签的关闭按钮可以正常点击 */
+:deep(.el-tag__close) {
+  color: #fff;
+  background-color: transparent;
+}
+
+:deep(.el-tag__close:hover) {
+  background-color: rgba(255, 255, 255, 0.2);
 }
 </style>
