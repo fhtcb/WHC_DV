@@ -28,7 +28,7 @@
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/yourusername/WHC_DV.git
+git clone https://github.com/fhtcb/WHC_DV.git
 cd WHC_DV
 ```
 ### 2. 安装依赖
